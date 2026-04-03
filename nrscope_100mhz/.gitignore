@@ -1,0 +1,9 @@
+build/
+
+.vscode/
+
+.DS_Store
+
+.cache/
+
+nrscope/twinrx_analysis/

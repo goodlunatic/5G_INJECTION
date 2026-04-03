@@ -1,0 +1,76 @@
+services:
+  nrscope:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        UHD_VERSION: 4.8.0.0
+    image: 5g_uplink/nrscope-dev
+    container_name: nrscope
+    privileged: true
+    stdin_open: true
+    tty: true
+    network_mode: host
+    working_dir: /workspace
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+    volumes:
+      - .:/workspace
+      - /dev/bus/usb:/dev/bus/usb
+    environment:
+      UHD_IMAGES_DIR: /usr/local/share/uhd/images
+      X310_INTERFACE: enp4s0
+    cap_add:
+      - SYS_PTRACE
+      - NET_ADMIN
+      - SYS_ADMIN
+    command:
+      - /bin/bash
+      - -lc
+      - |
+        git config --global --add safe.directory /workspace/nrscope_100mhz || true
+        mkdir -p /workspace/nrscope_100mhz/build
+        cd /workspace/nrscope_100mhz/build
+        if [ ! -x /workspace/nrscope_100mhz/build/nrscope/src/nrscope ]; then
+          cmake ../
+          make -j"$(nproc)"
+        fi
+        exec sleep infinity
+
+  sni5gect:
+    build:
+      context: ./sni5gect_100mhz_n41
+      dockerfile: Dockerfile
+      target: sni5gect-dev
+      args:
+        UHD_VERSION: 4.8.0.0
+    image: 5g_uplink/sni5gect-dev
+    container_name: sni5gect
+    privileged: true
+    stdin_open: true
+    tty: true
+    network_mode: host
+    working_dir: /workspace/sni5gect_100mhz_n41
+    environment:
+      UHD_IMAGES_DIR: /usr/local/share/uhd/images
+      WDISSECTOR_PATH: /root/wdissector
+    volumes:
+      - .:/workspace
+      - /dev:/dev
+      - /dev/bus/usb:/dev/bus/usb
+    command:
+      - /bin/bash
+      - -lc
+      - |
+        git config --global --add safe.directory /workspace/sni5gect_100mhz_n41 || true
+        mkdir -p /workspace/sni5gect_100mhz_n41/build
+        cd /workspace/sni5gect_100mhz_n41
+        if [ ! -x /workspace/sni5gect_100mhz_n41/build/shadower/shadower ]; then
+          cmake -DCMAKE_BUILD_TYPE=Debug \
+                -DCMAKE_EXPORT_COMPILE_COMMANDS=TRUE \
+                -DCMAKE_C_COMPILER=/usr/bin/clang-15 \
+                -DCMAKE_CXX_COMPILER=/usr/bin/clang++-15 \
+                --no-warn-unused-cli -B build -G Ninja
+          ninja -C build
+        fi
+        exec sleep infinity
