@@ -1,0 +1,29 @@
+# Workspace tooling
+.codex/
+.waylog/
+paper/
+
+# Common generated directories
+**/build/
+**/release/
+**/logs/
+**/records/
+**/result/
+**/results/
+**/backup/
+**/evaluation_backup/
+**/cmake-build-debug/
+**/.cache/
+**/.idea/
+**/.vscode/
+**/__pycache__/
+**/venv/
+
+# Common generated files
+.DS_Store
+*.log
+*.tmp
+*.pcap
+*.fc32
+*.pyc
+core.*

@@ -65,6 +65,7 @@ configure_file(
 option(ENABLE_SRSUE          "Build srsUE application"                  ON)
 option(ENABLE_SRSENB         "Build srsENB application"                 ON)
 option(ENABLE_SRSEPC         "Build srsEPC application"                 OFF)
+option(ENABLE_SHADOWER       "Build SNI5GECT shadower application"      ON)
 option(DISABLE_SIMD          "Disable SIMD instructions"                OFF)
 option(AUTO_DETECT_ISA       "Autodetect supported ISA extensions"      ON)
 
@@ -717,4 +718,8 @@ else(ENABLE_SRSEPC)
   message(STATUS "srsEPC build disabled")
 endif(ENABLE_SRSEPC)
 
-add_subdirectory(shadower)
+if(ENABLE_SHADOWER)
+  add_subdirectory(shadower)
+else()
+  message(STATUS "Shadower build disabled")
+endif()

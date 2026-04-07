@@ -1,0 +1,36 @@
+cu_cp:
+  amf:
+    addr: 127.0.0.5
+    port: 38412
+    bind_addr: 127.0.0.1
+    supported_tracking_areas:
+      - tac: 1
+        plmn_list:
+          - plmn: "00101"
+            tai_slice_support_list:
+              - sst: 1
+
+ru_sdr:
+  device_driver: uhd
+  device_args: type=x300,addr=192.168.40.2,master_clock_rate=184.32e6,clock=internal,sync=internal
+  srate: 23.04
+  otw_format: sc16
+  tx_gain: 31.5
+  rx_gain: 37.5
+
+cell_cfg:
+  dl_arfcn: 373000
+  band: 3
+  channel_bandwidth_MHz: 20
+  common_scs: 15
+  plmn: "00101"
+  tac: 1
+  pci: 1
+
+log:
+  filename: /workspace/testbed/logs/srsran/gnb.log
+  all_level: info
+
+pcap:
+  mac_enable: true
+  mac_filename: /workspace/testbed/logs/srsran/gnb_mac.pcap

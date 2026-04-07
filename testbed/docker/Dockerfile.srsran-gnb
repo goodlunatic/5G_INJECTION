@@ -1,0 +1,40 @@
+FROM ubuntu:22.04
+
+ARG SRSRAN_PROJECT_TAG=release_24_10_1
+ARG UHD_VERSION=4.8.0.0
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Asia/Shanghai
+ENV SRSRAN_PROJECT_SRC=/opt/src/srsRAN_Project
+
+SHELL ["/bin/bash", "-lc"]
+
+RUN ln -snf "/usr/share/zoneinfo/${TZ}" /etc/localtime && echo "${TZ}" > /etc/timezone
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates curl git iproute2 net-tools pkg-config ninja-build cmake \
+    build-essential gcc g++ libfftw3-dev libmbedtls-dev libsctp-dev \
+    libyaml-cpp-dev libgtest-dev libboost-all-dev \
+    libusb-1.0-0 libusb-1.0-0-dev libudev-dev python3 python3-pip \
+    python3-mako python3-requests python3-numpy python3-ruamel.yaml \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN git clone --depth 1 --branch "v${UHD_VERSION}" https://github.com/EttusResearch/uhd.git /tmp/uhd && \
+    cmake -S /tmp/uhd/host -B /tmp/uhd/build \
+      -DENABLE_PYTHON_API=OFF \
+      -DENABLE_MANUAL=OFF \
+      -DENABLE_TESTS=OFF && \
+    cmake --build /tmp/uhd/build -j"$(nproc)" && \
+    cmake --install /tmp/uhd/build && \
+    ldconfig && \
+    uhd_images_downloader -t x3xx && \
+    rm -rf /tmp/uhd
+
+RUN git clone --depth 1 --branch "${SRSRAN_PROJECT_TAG}" https://github.com/srsRAN/srsRAN_Project.git "${SRSRAN_PROJECT_SRC}" && \
+    cd "${SRSRAN_PROJECT_SRC}" && \
+    cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release && \
+    ninja -C build gnb
+
+WORKDIR /workspace
+
+CMD ["/bin/bash"]
