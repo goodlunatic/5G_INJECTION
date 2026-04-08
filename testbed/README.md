@@ -8,4 +8,4 @@
 
 详细使用说明：
 
-- 仓库根目录 [README.md](/home/ubuntu/workarea/5g_uplink_solve/README.md)
+- 仓库根目录 [README.md](../README.md)

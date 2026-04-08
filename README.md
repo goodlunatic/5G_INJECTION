@@ -1,6 +1,6 @@
 # 5G SA Testbed Usage Guide
 
-这个仓库里和自建 5G SA 实验网直接相关的目录现在是 [testbed](/home/ubuntu/workarea/5g_uplink_solve/testbed)。
+这个仓库里和自建 5G SA 实验网直接相关的目录现在是 [testbed](testbed)。
 
 这套环境的目标是：
 
@@ -18,25 +18,25 @@
 
 ## 1. 目录说明
 
-- [testbed](/home/ubuntu/workarea/5g_uplink_solve/testbed)
+- [testbed](testbed)
   这是实验网主目录。
-- [testbed/docker-compose.5g-testbed.yml](/home/ubuntu/workarea/5g_uplink_solve/testbed/docker-compose.5g-testbed.yml)
+- [testbed/docker-compose.5g-testbed.yml](testbed/docker-compose.5g-testbed.yml)
   这是整套实验网的编排入口。
-- [testbed/docker](/home/ubuntu/workarea/5g_uplink_solve/testbed/docker)
+- [testbed/docker](testbed/docker)
   这里放 3 个镜像的 Dockerfile。
-- [testbed/scripts](/home/ubuntu/workarea/5g_uplink_solve/testbed/scripts)
+- [testbed/scripts](testbed/scripts)
   这里放启动脚本和订阅用户管理脚本。
-- [testbed/configs/open5gs/open5gs.yml](/home/ubuntu/workarea/5g_uplink_solve/testbed/configs/open5gs/open5gs.yml)
+- [testbed/configs/open5gs/open5gs.yml](testbed/configs/open5gs/open5gs.yml)
   这是 Open5GS 配置。
-- [testbed/configs/srsran/gnb.yml.tpl](/home/ubuntu/workarea/5g_uplink_solve/testbed/configs/srsran/gnb.yml.tpl)
+- [testbed/configs/srsran/gnb.yml.tpl](testbed/configs/srsran/gnb.yml.tpl)
   这是 gNB 配置模板。
-- [testbed/configs/srsue/ue.conf.tpl](/home/ubuntu/workarea/5g_uplink_solve/testbed/configs/srsue/ue.conf.tpl)
+- [testbed/configs/srsue/ue.conf.tpl](testbed/configs/srsue/ue.conf.tpl)
   这是 UE 配置模板。
-- [testbed/subscribers/test-ue.env](/home/ubuntu/workarea/5g_uplink_solve/testbed/subscribers/test-ue.env)
+- [testbed/subscribers/test-ue.env](testbed/subscribers/test-ue.env)
   这是默认测试 UE 的 IMSI、K、OPC、APN。
-- [testbed/runtime](/home/ubuntu/workarea/5g_uplink_solve/testbed/runtime)
+- [testbed/runtime](testbed/runtime)
   这里是容器启动时渲染出来的实际运行配置。
-- [testbed/logs](/home/ubuntu/workarea/5g_uplink_solve/testbed/logs)
+- [testbed/logs](testbed/logs)
   这里是核心网、gNB、UE 的本地日志目录。
 
 ## 2. 组件版本
@@ -60,8 +60,8 @@
 
 当前默认空口组合是偏向 `srsUE` 兼容的组合，但你可以通过环境变量覆盖：
 
-- `GNB` 默认采样率来自 [start-srsran-gnb.sh](/home/ubuntu/workarea/5g_uplink_solve/testbed/scripts/start-srsran-gnb.sh)
-- `UE` 默认采样率来自 [start-srsue.sh](/home/ubuntu/workarea/5g_uplink_solve/testbed/scripts/start-srsue.sh)
+- `GNB` 默认采样率来自 [start-srsran-gnb.sh](testbed/scripts/start-srsran-gnb.sh)
+- `UE` 默认采样率来自 [start-srsue.sh](testbed/scripts/start-srsue.sh)
 
 ## 4. 启动前准备
 
@@ -96,7 +96,7 @@ docker compose version
 
 ## 5. 默认订阅用户
 
-默认 UE 参数保存在 [testbed/subscribers/test-ue.env](/home/ubuntu/workarea/5g_uplink_solve/testbed/subscribers/test-ue.env)。
+默认 UE 参数保存在 [testbed/subscribers/test-ue.env](testbed/subscribers/test-ue.env)。
 
 当前默认值：
 
@@ -208,7 +208,7 @@ docker logs --tail 100 testbed-open5gs
 
 本地文件日志：
 
-- [open5gs.log](/home/ubuntu/workarea/5g_uplink_solve/testbed/logs/open5gs/open5gs.log)
+- [open5gs.log](testbed/logs/open5gs/open5gs.log)
 
 ### 8.2 看 gNB 是否连上 AMF
 
@@ -225,7 +225,7 @@ rg -n "SCTP connection to AMF|NG Setup|Connected to AMF" testbed/logs/srsran/gnb
 
 关键文件：
 
-- [gnb.log](/home/ubuntu/workarea/5g_uplink_solve/testbed/logs/srsran/gnb.log)
+- [gnb.log](testbed/logs/srsran/gnb.log)
 
 ## 9. 如何确认 UE 是否开始接入
 
@@ -243,8 +243,8 @@ tail -f testbed/logs/srsue/ue.log
 
 关键文件：
 
-- [ue.log](/home/ubuntu/workarea/5g_uplink_solve/testbed/logs/srsue/ue.log)
-- [ue-console.log](/home/ubuntu/workarea/5g_uplink_solve/testbed/logs/srsue/ue-console.log)
+- [ue.log](testbed/logs/srsue/ue.log)
+- [ue-console.log](testbed/logs/srsue/ue-console.log)
 
 你通常会看到这些阶段：
 
@@ -344,21 +344,21 @@ docker compose -f testbed/docker-compose.5g-testbed.yml up -d
 
 ### 13.1 Open5GS
 
-- [testbed/logs/open5gs](/home/ubuntu/workarea/5g_uplink_solve/testbed/logs/open5gs)
+- [testbed/logs/open5gs](testbed/logs/open5gs)
 
 ### 13.2 gNB
 
-- [testbed/logs/srsran/gnb.log](/home/ubuntu/workarea/5g_uplink_solve/testbed/logs/srsran/gnb.log)
-- [testbed/logs/srsran/gnb-console.log](/home/ubuntu/workarea/5g_uplink_solve/testbed/logs/srsran/gnb-console.log)
-- [testbed/logs/srsran/gnb_mac.pcap](/home/ubuntu/workarea/5g_uplink_solve/testbed/logs/srsran/gnb_mac.pcap)
-- [testbed/logs/srsran/gnb_ngap.pcap](/home/ubuntu/workarea/5g_uplink_solve/testbed/logs/srsran/gnb_ngap.pcap)
+- [testbed/logs/srsran/gnb.log](testbed/logs/srsran/gnb.log)
+- [testbed/logs/srsran/gnb-console.log](testbed/logs/srsran/gnb-console.log)
+- [testbed/logs/srsran/gnb_mac.pcap](testbed/logs/srsran/gnb_mac.pcap)
+- [testbed/logs/srsran/gnb_ngap.pcap](testbed/logs/srsran/gnb_ngap.pcap)
 
 ### 13.3 UE
 
-- [testbed/logs/srsue/ue.log](/home/ubuntu/workarea/5g_uplink_solve/testbed/logs/srsue/ue.log)
-- [testbed/logs/srsue/ue-console.log](/home/ubuntu/workarea/5g_uplink_solve/testbed/logs/srsue/ue-console.log)
-- [testbed/logs/srsue/ue_mac_nr.pcap](/home/ubuntu/workarea/5g_uplink_solve/testbed/logs/srsue/ue_mac_nr.pcap)
-- [testbed/logs/srsue/ue_nas.pcap](/home/ubuntu/workarea/5g_uplink_solve/testbed/logs/srsue/ue_nas.pcap)
+- [testbed/logs/srsue/ue.log](testbed/logs/srsue/ue.log)
+- [testbed/logs/srsue/ue-console.log](testbed/logs/srsue/ue-console.log)
+- [testbed/logs/srsue/ue_mac_nr.pcap](testbed/logs/srsue/ue_mac_nr.pcap)
+- [testbed/logs/srsue/ue_nas.pcap](testbed/logs/srsue/ue_nas.pcap)
 
 ## 14. 建议的最小使用流程
 
@@ -426,11 +426,11 @@ tail -f testbed/logs/srsue/ue.log
 
 ## 16. 你最常用的几个文件
 
-- [testbed/docker-compose.5g-testbed.yml](/home/ubuntu/workarea/5g_uplink_solve/testbed/docker-compose.5g-testbed.yml)
-- [testbed/scripts/start-open5gs.sh](/home/ubuntu/workarea/5g_uplink_solve/testbed/scripts/start-open5gs.sh)
-- [testbed/scripts/start-srsran-gnb.sh](/home/ubuntu/workarea/5g_uplink_solve/testbed/scripts/start-srsran-gnb.sh)
-- [testbed/scripts/start-srsue.sh](/home/ubuntu/workarea/5g_uplink_solve/testbed/scripts/start-srsue.sh)
-- [testbed/configs/open5gs/open5gs.yml](/home/ubuntu/workarea/5g_uplink_solve/testbed/configs/open5gs/open5gs.yml)
-- [testbed/configs/srsran/gnb.yml.tpl](/home/ubuntu/workarea/5g_uplink_solve/testbed/configs/srsran/gnb.yml.tpl)
-- [testbed/configs/srsue/ue.conf.tpl](/home/ubuntu/workarea/5g_uplink_solve/testbed/configs/srsue/ue.conf.tpl)
-- [testbed/subscribers/test-ue.env](/home/ubuntu/workarea/5g_uplink_solve/testbed/subscribers/test-ue.env)
+- [testbed/docker-compose.5g-testbed.yml](testbed/docker-compose.5g-testbed.yml)
+- [testbed/scripts/start-open5gs.sh](testbed/scripts/start-open5gs.sh)
+- [testbed/scripts/start-srsran-gnb.sh](testbed/scripts/start-srsran-gnb.sh)
+- [testbed/scripts/start-srsue.sh](testbed/scripts/start-srsue.sh)
+- [testbed/configs/open5gs/open5gs.yml](testbed/configs/open5gs/open5gs.yml)
+- [testbed/configs/srsran/gnb.yml.tpl](testbed/configs/srsran/gnb.yml.tpl)
+- [testbed/configs/srsue/ue.conf.tpl](testbed/configs/srsue/ue.conf.tpl)
+- [testbed/subscribers/test-ue.env](testbed/subscribers/test-ue.env)

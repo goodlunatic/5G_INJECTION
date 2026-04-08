@@ -24,6 +24,7 @@ source "${SUBSCRIBER_ENV_FILE}"
 UE_SRATE="${UE_SRATE:-23.04e6}"
 UE_NOF_PRB="${UE_NOF_PRB:-106}"
 UE_FREQ_OFFSET="${UE_FREQ_OFFSET:-0}"
+TIME_ADV_NSAMPLES="${TIME_ADV_NSAMPLES:-100}"
 
 B210_MASTER_CLOCK="${B210_MASTER_CLOCK:-}"
 if [[ -z "${B210_MASTER_CLOCK}" ]]; then
@@ -59,6 +60,7 @@ sed \
   -e "s|__B210_DEVICE_ARGS__|${B210_DEVICE_ARGS}|g" \
   -e "s|__UE_SRATE__|${UE_SRATE}|g" \
   -e "s|__UE_FREQ_OFFSET__|${UE_FREQ_OFFSET}|g" \
+  -e "s|__TIME_ADV_NSAMPLES__|${TIME_ADV_NSAMPLES}|g" \
   -e "s|__B210_TX_GAIN__|${B210_TX_GAIN:-80}|g" \
   -e "s|__B210_RX_GAIN__|${B210_RX_GAIN:-40}|g" \
   -e "s|__NR_DL_ARFCN__|${NR_DL_ARFCN:-368500}|g" \

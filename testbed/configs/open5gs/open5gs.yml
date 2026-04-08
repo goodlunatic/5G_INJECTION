@@ -1,6 +1,11 @@
+# This is the Open5GS configuration used by the testbed.
+# It is intentionally trimmed for a small 5G SA lab: AMF/SMF/UPF plus the
+# supporting 5GC control-plane functions needed by Open5GS.
+
 db_uri: mongodb://127.0.0.1:27018/open5gs
 
 logger:
+  # All logs are written into the bind-mounted workspace for easy inspection.
   file:
     path: /workspace/testbed/logs/open5gs/open5gs.log
   level: info
@@ -9,6 +14,7 @@ global:
   max:
     ue: 64
   parameter:
+    # Disable unused EPC / optional functions to keep the lab setup simple.
     no_scp: true
     no_sepp: true
     no_bsf: true
@@ -19,6 +25,7 @@ global:
     no_hss: true
 
 nrf:
+  # NRF is still enabled because the 5GC NFs below register through SBI.
   serving:
     - plmn_id:
         mcc: 001
@@ -44,6 +51,7 @@ amf:
       - address: 127.0.0.5
         port: 9090
   guami:
+    # MCC/MNC/TAC/SST values here must stay aligned with gNB and UE configs.
     - plmn_id:
         mcc: 001
         mnc: 01
@@ -97,6 +105,7 @@ smf:
       - address: 127.0.0.4
         port: 9090
   session:
+    # DNN "internet" must match the UE APN and the subscriber record.
     - subnet: 10.45.0.0/16
       gateway: 10.45.0.1
       dnn: internet
@@ -123,6 +132,7 @@ upf:
     server:
       - address: 127.0.0.7
   session:
+    # ogstun is created by the startup script and becomes the UE-side gateway.
     - subnet: 10.45.0.0/16
       gateway: 10.45.0.1
       dnn: internet
