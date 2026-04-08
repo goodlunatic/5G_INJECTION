@@ -4,9 +4,6 @@ services:
       context: ..
       dockerfile: testbed/docker/Dockerfile.allinone
       args:
-        OPEN5GS_TAG: v2.7.7
-        SRSRAN_PROJECT_TAG: release_24_10_1
-        SRSRAN_4G_TAG: release_23_11
         UHD_VERSION: 4.8.0.0
     image: 5g_testbed/dev
     container_name: 5g_testbed
@@ -21,6 +18,9 @@ services:
       memlock: -1
     volumes:
       - ..:/workspace
+      - ../testbed/sources/open5gs:/opt/src/open5gs
+      - ../testbed/sources/srsRAN_Project:/opt/src/srsRAN_Project
+      - ../testbed/sources/srsRAN_4G:/opt/src/srsRAN_4G
       - /dev:/dev
       - /dev/bus/usb:/dev/bus/usb
       - /dev/net/tun:/dev/net/tun

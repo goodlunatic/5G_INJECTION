@@ -21,15 +21,15 @@ ru_sdr:
   # The testbed uses an Ettus USRP via UHD.
   device_driver: uhd
   # Usually includes type=x300, addr=<x310 ip>, master_clock_rate, and time_source.
-  device_args: type=x300,addr=192.168.40.2,time_source=external,master_clock_rate=184.32e6,num_recv_frames=64,num_send_frames=64
+  device_args: type=x300,addr=192.168.40.2,time_source=internal,master_clock_rate=184.32e6,num_recv_frames=64,num_send_frames=64
   # clock controls the 10 MHz reference source seen by srsRAN.
   clock: external
   # sync controls the time/PPS source seen by srsRAN.
-  sync: external
+  sync: internal
   # 23.04 Msps is the common sample rate used here for a 20 MHz NR carrier.
   srate: 23.04
   tx_gain: 31.5
-  rx_gain: 31.5
+  rx_gain: 37.5
 
 cell_cfg:
   # Downlink carrier center frequency in NR-ARFCN.

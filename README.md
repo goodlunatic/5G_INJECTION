@@ -25,6 +25,8 @@
   这是整套单容器实验网的编排入口。
 - [testbed/docker](testbed/docker)
   这里放当前单容器方案使用的 Dockerfile。
+- [testbed/sources](testbed/sources)
+  这里放通过 `docker compose` 挂载进容器的本地源码目录。
 - [testbed/scripts](testbed/scripts)
   这里放辅助脚本和可选的配置生成脚本。
 - [testbed/configs/open5gs/open5gs.yml](testbed/configs/open5gs/open5gs.yml)
@@ -130,7 +132,23 @@ TAC=1
 ./testbed/scripts/add-open5gs-subscriber.sh showfiltered
 ```
 
-## 6. 如何构建镜像
+## 6. 准备本地源码
+
+在仓库根目录执行：
+
+```bash
+git clone --branch v2.7.7 https://github.com/open5gs/open5gs.git testbed/sources/open5gs
+git clone --branch release_24_10_1 https://github.com/srsRAN/srsRAN_Project.git testbed/sources/srsRAN_Project
+git clone --branch release_23_11 https://github.com/srsran/srsRAN_4G.git testbed/sources/srsRAN_4G
+```
+
+当前 `docker compose` 会把这些目录直接挂载到容器里：
+
+- `testbed/sources/open5gs` -> `/opt/src/open5gs`
+- `testbed/sources/srsRAN_Project` -> `/opt/src/srsRAN_Project`
+- `testbed/sources/srsRAN_4G` -> `/opt/src/srsRAN_4G`
+
+## 7. 如何构建依赖镜像
 
 在仓库根目录执行：
 
@@ -144,9 +162,11 @@ docker compose -f testbed/docker-compose.5g-testbed.yml build
 docker compose -f testbed/docker-compose.5g-testbed.yml config
 ```
 
-## 7. 如何启动单容器环境
+这个镜像现在只负责提供依赖环境，不会在 `docker build` 时重新 `git clone` 或编译 `Open5GS / srsRAN`。
 
-### 7.1 启动容器
+## 8. 如何启动单容器环境
+
+### 8.1 启动容器
 
 ```bash
 docker compose -f testbed/docker-compose.5g-testbed.yml up -d
@@ -156,13 +176,13 @@ docker compose -f testbed/docker-compose.5g-testbed.yml up -d
 
 - `5g_testbed`
 
-### 7.2 进入容器
+### 8.2 进入容器
 
 ```bash
 docker exec -it 5g_testbed bash
 ```
 
-### 7.3 查看容器状态
+### 8.3 查看容器状态
 
 ```bash
 docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}' | grep '^5g_testbed$'
@@ -172,11 +192,48 @@ docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}' | grep '^5g_testb
 
 - `5g_testbed`
 
-## 8. 在容器里手动启动各组件
+## 9. 在容器里先编译源码
 
 下面的命令都在容器内执行。
 
-### 8.1 启动 MongoDB
+### 9.1 编译 Open5GS
+
+```bash
+cd /opt/src/open5gs
+meson setup build
+ninja -C build
+```
+
+### 9.2 编译 gNB
+
+```bash
+cd /opt/src/srsRAN_Project
+cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+ninja -C build gnb
+```
+
+### 9.3 编译 srsUE
+
+```bash
+cd /opt/src/srsRAN_4G
+cmake -S . -B build -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DENABLE_GUI=OFF \
+  -DENABLE_SRSUE=ON \
+  -DENABLE_SRSENB=OFF \
+  -DENABLE_SRSEPC=OFF
+ninja -C build srsue srsran_rf_uhd
+cp /opt/src/srsRAN_4G/build/lib/src/phy/rf/libsrsran_rf_uhd.so /usr/local/lib/
+ldconfig
+```
+
+源码和 `build/` 目录都在宿主机挂载目录里，所以重新进容器后编译产物仍然保留。
+
+## 10. 在容器里手动启动各组件
+
+下面的命令都在容器内执行。
+
+### 10.1 启动 MongoDB
 
 ```bash
 mkdir -p /var/lib/mongodb /workspace/testbed/logs/open5gs /var/run/mongodb
@@ -187,7 +244,7 @@ mongod --dbpath /var/lib/mongodb \
   --logappend --fork
 ```
 
-### 8.2 启动 Open5GS
+### 10.2 启动 Open5GS
 
 如果你要用默认配置：
 
@@ -215,7 +272,7 @@ sysctl -w net.ipv6.conf.all.forwarding=1 || true
 
 如果你要用别的 Open5GS 配置文件，直接把 `-c` 后面的路径改掉即可。
 
-### 8.3 启动 gNB
+### 10.3 启动 gNB
 
 你可以直接让 `gNB` 读取你指定的配置文件：
 
@@ -231,7 +288,7 @@ sysctl -w net.ipv6.conf.all.forwarding=1 || true
   -c /workspace/your/path/to/gnb.yml
 ```
 
-### 8.4 启动 srsUE
+### 10.4 启动 srsUE
 
 ```bash
 chrt -f 20 taskset -c 2-5 \
@@ -247,7 +304,7 @@ chrt -f 20 taskset -c 2-5 \
   /workspace/your/path/to/ue.conf
 ```
 
-### 8.5 如何生成你自己的运行配置
+### 10.5 如何生成你自己的运行配置
 
 如果你想继续沿用模板生成方式，也可以手工执行：
 
@@ -258,9 +315,9 @@ chrt -f 20 taskset -c 2-5 \
 
 但更推荐你直接维护自己的配置文件，然后在命令里显式指定路径。
 
-## 9. 如何确认核心网和基站已经起来
+## 11. 如何确认核心网和基站已经起来
 
-### 9.1 看 Open5GS 是否启动
+### 11.1 看 Open5GS 是否启动
 
 ```bash
 tail -f /workspace/testbed/logs/open5gs/open5gs.log
@@ -270,7 +327,7 @@ tail -f /workspace/testbed/logs/open5gs/open5gs.log
 
 - [open5gs.log](testbed/logs/open5gs/open5gs.log)
 
-### 9.2 看 gNB 是否连上 AMF
+### 11.2 看 gNB 是否连上 AMF
 
 ```bash
 rg -n "SCTP connection to AMF|NG Setup|Connected to AMF" testbed/logs/srsran/gnb.log
@@ -286,7 +343,7 @@ rg -n "SCTP connection to AMF|NG Setup|Connected to AMF" testbed/logs/srsran/gnb
 
 - [gnb.log](testbed/logs/srsran/gnb.log)
 
-## 10. 如何确认 UE 是否开始接入
+## 12. 如何确认 UE 是否开始接入
 
 查看 UE 文件日志：
 
@@ -306,7 +363,7 @@ tail -f testbed/logs/srsue/ue.log
 - `Cell Selection`
 - 如果真的接入成功，后面才会看到更进一步的接入过程
 
-## 11. 如何停止实验网
+## 13. 如何停止实验网
 
 停止但保留容器：
 
@@ -326,36 +383,40 @@ docker compose -f testbed/docker-compose.5g-testbed.yml down
 docker compose -f testbed/docker-compose.5g-testbed.yml down -v
 ```
 
-## 12. 日志和抓包文件在哪
+## 14. 日志和抓包文件在哪
 
-### 12.1 Open5GS
+### 14.1 Open5GS
 
 - [testbed/logs/open5gs](testbed/logs/open5gs)
 
-### 12.2 gNB
+### 14.2 gNB
 
 - [testbed/logs/srsran/gnb.log](testbed/logs/srsran/gnb.log)
 - [testbed/logs/srsran/gnb-console.log](testbed/logs/srsran/gnb-console.log)
 - [testbed/logs/srsran/gnb_mac.pcap](testbed/logs/srsran/gnb_mac.pcap)
 - [testbed/logs/srsran/gnb_ngap.pcap](testbed/logs/srsran/gnb_ngap.pcap)
 
-### 12.3 UE
+### 14.3 UE
 
 - [testbed/logs/srsue/ue.log](testbed/logs/srsue/ue.log)
 - [testbed/logs/srsue/ue-console.log](testbed/logs/srsue/ue-console.log)
 - [testbed/logs/srsue/ue_mac_nr.pcap](testbed/logs/srsue/ue_mac_nr.pcap)
 - [testbed/logs/srsue/ue_nas.pcap](testbed/logs/srsue/ue_nas.pcap)
 
-## 13. 建议的最小使用流程
+## 15. 建议的最小使用流程
 
 在根目录依次执行：
 
 ```bash
+git clone --branch v2.7.7 https://github.com/open5gs/open5gs.git testbed/sources/open5gs
+git clone --branch release_24_10_1 https://github.com/srsRAN/srsRAN_Project.git testbed/sources/srsRAN_Project
+git clone --branch release_23_11 https://github.com/srsran/srsRAN_4G.git testbed/sources/srsRAN_4G
 docker compose -f testbed/docker-compose.5g-testbed.yml build
 docker compose -f testbed/docker-compose.5g-testbed.yml up -d
+docker exec -it 5g_testbed bash
 ```
 
-然后进入容器并按需要手动启动 `MongoDB`、`Open5GS`、`gNB`、`srsUE`。你也可以另外开窗口看日志：
+然后在容器里先编译，再按需要手动启动 `MongoDB`、`Open5GS`、`gNB`、`srsUE`。你也可以另外开窗口看日志：
 
 ```bash
 tail -f testbed/logs/open5gs/open5gs.log
@@ -369,9 +430,9 @@ tail -f testbed/logs/srsue/ue.log
 - `UE` 是否只停在 `Cell Selection`
 - `Open5GS` 是否收到真正的 UE 注册信令
 
-## 14. 常见问题定位思路
+## 16. 常见问题定位思路
 
-### 14.1 `gNB` 没连上 `AMF`
+### 16.1 `gNB` 没连上 `AMF`
 
 先查：
 
@@ -384,7 +445,7 @@ tail -f testbed/logs/srsue/ue.log
 - `127.0.0.5:38412` 是否一致
 - `NG Setup` 是否成功
 
-### 14.2 `UE` 一启动就失败
+### 16.2 `UE` 一启动就失败
 
 先查：
 
@@ -398,7 +459,7 @@ tail -f testbed/logs/srsue/ue.log
 - `out-of-sync`
 - `PBCH-MIB`
 
-### 14.3 `gNB` 和 `Open5GS` 正常，但 UE 不注册
+### 16.3 `gNB` 和 `Open5GS` 正常，但 UE 不注册
 
 这通常不是核心网脚本问题，而是无线链路问题。重点查：
 
@@ -408,9 +469,10 @@ tail -f testbed/logs/srsue/ue.log
 - 时钟和采样率是否匹配
 - 当前 `ARFCN / SSB / PRB / BW / coreset0` 是否和 `srsUE` 兼容
 
-## 15. 你最常用的几个文件
+## 17. 你最常用的几个文件
 
 - [testbed/docker-compose.5g-testbed.yml](testbed/docker-compose.5g-testbed.yml)
+- [testbed/sources/README.md](testbed/sources/README.md)
 - [testbed/scripts/start-open5gs.sh](testbed/scripts/start-open5gs.sh)
 - [testbed/scripts/start-srsran-gnb.sh](testbed/scripts/start-srsran-gnb.sh)
 - [testbed/scripts/start-srsue.sh](testbed/scripts/start-srsue.sh)
