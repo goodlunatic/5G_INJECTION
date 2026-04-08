@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-WORKSPACE_ROOT="${WORKSPACE_ROOT:-/workspace}"
-SUBSCRIBER_ENV_FILE="${SUBSCRIBER_ENV_FILE:-${WORKSPACE_ROOT}/testbed/subscribers/test-ue.env}"
-DB_URI="${DB_URI:-mongodb://127.0.0.1:27018/open5gs}"
-OPEN5GS_DBCTL="${OPEN5GS_DBCTL:-/opt/src/open5gs/misc/db/open5gs-dbctl}"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+TESTBED_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+SUBSCRIBER_ENV_FILE="${SUBSCRIBER_ENV_FILE:-${TESTBED_DIR}/subscribers/test-ue.env}"
+CONTAINER_NAME="${CONTAINER_NAME:-testbed-open5gs}"
+MONGODB_HOST="${MONGODB_HOST:-127.0.0.1}"
 
 usage() {
   echo "Usage:"
   echo "  ./testbed/scripts/add-open5gs-subscriber.sh add-default"
   echo "  ./testbed/scripts/add-open5gs-subscriber.sh showfiltered"
-  echo "  ./testbed/scripts/add-open5gs-subscriber.sh <open5gs-dbctl args...>"
+  echo "  ./testbed/scripts/add-open5gs-subscriber.sh <command...>"
 }
 
 if [[ $# -lt 1 ]]; then
@@ -26,12 +27,16 @@ case "$1" in
     fi
     # shellcheck disable=SC1090
     source "${SUBSCRIBER_ENV_FILE}"
-    exec docker exec -i testbed-open5gs "${OPEN5GS_DBCTL}" --db_uri="${DB_URI}" add_ue_with_apn "${IMSI}" "${K}" "${OPC}" "${APN:-internet}"
+    subscriber_ip="${SUBSCRIBER_IP:-10.45.0.2}"
+    amf_value="${AMF:-9001}"
+    qci_value="${QCI:-9}"
+    subscriber_data="${IMSI},${K},opc,${OPC},${amf_value},${qci_value},${subscriber_ip}"
+    exec docker exec -i "${CONTAINER_NAME}" python3 add_users.py --mongodb "${MONGODB_HOST}" --subscriber_data "${subscriber_data}"
     ;;
   showfiltered)
-    exec docker exec -i testbed-open5gs "${OPEN5GS_DBCTL}" --db_uri="${DB_URI}" showfiltered
+    exec docker exec -i "${CONTAINER_NAME}" mongosh --quiet "mongodb://${MONGODB_HOST}/open5gs" --eval "db.subscribers.find({}, {imsi:1, slice:1, _id:0}).toArray()"
     ;;
   *)
-    exec docker exec -i testbed-open5gs "${OPEN5GS_DBCTL}" --db_uri="${DB_URI}" "$@"
+    exec docker exec -it "${CONTAINER_NAME}" "$@"
     ;;
 esac

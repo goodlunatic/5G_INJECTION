@@ -1,34 +1,144 @@
 services:
-  5g_testbed:
+  radio_builder:
+    container_name: testbed-radio-builder
+    image: 5g_testbed/radio
     build:
       context: ..
       dockerfile: testbed/docker/Dockerfile.allinone
       args:
         UHD_VERSION: 4.8.0.0
-    image: 5g_testbed/dev
-    container_name: 5g_testbed
+    working_dir: /workspace
+    environment:
+      WORKSPACE_ROOT: /workspace
+      SRSRAN_PROJECT_SRC: /workspace/testbed/sources/srsRAN_Project
+      SRSRAN_4G_SRC: /workspace/testbed/sources/srsRAN_4G
+      SRSRAN_PROJECT_BUILD_DIR: build-docker
+      SRSRAN_4G_BUILD_DIR: build-docker
+    volumes:
+      - ..:/workspace
+    command:
+      - /bin/bash
+      - /workspace/testbed/scripts/build-radio-binaries.sh
+
+  5gc:
+    container_name: testbed-open5gs
+    build:
+      context: ./sources/srsRAN_Project/docker/open5gs
+      dockerfile: Dockerfile
+      target: open5gs
+      args:
+        OS_VERSION: "22.04"
+        OPEN5GS_VERSION: "${OPEN5GS_VERSION:-v2.7.7}"
+    env_file:
+      - ./runtime/open5gs.env
+    privileged: true
+    restart: unless-stopped
+    ports:
+      - "9999:9999/tcp"
+    command: 5gc -c open5gs-5gc.yml
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.20 7777"]
+      interval: 3s
+      timeout: 1s
+      retries: 60
+    networks:
+      ran:
+        ipv4_address: 10.53.1.2
+
+  srsran_gnb:
+    container_name: testbed-srsran-gnb
+    image: 5g_testbed/radio
+    build:
+      context: ..
+      dockerfile: testbed/docker/Dockerfile.allinone
+      args:
+        UHD_VERSION: 4.8.0.0
     restart: unless-stopped
     privileged: true
-    stdin_open: true
     network_mode: host
-    tty: true
     working_dir: /workspace
+    depends_on:
+      5gc:
+        condition: service_healthy
+    environment:
+      WORKSPACE_ROOT: /workspace
+      OPEN5GS_IP: 10.53.1.2
+      DOCKER_NETWORK_NAME: testbed_ran
+      GNB_BIND_ADDR: ${GNB_BIND_ADDR:-10.53.1.1}
+      GNB_CONFIG_TEMPLATE: /workspace/testbed/configs/srsran/gnb.yml.tpl
+      GNB_CONFIG_RENDERED: /workspace/testbed/runtime/gnb.yml
+      SRSRAN_PROJECT_SRC: /workspace/testbed/sources/srsRAN_Project
+      GNB_BIN: /workspace/testbed/sources/srsRAN_Project/build-docker/apps/gnb/gnb
+      X310_ADDR: ${X310_ADDR:-192.168.40.2}
+      X310_DEVICE_ARGS: ${X310_DEVICE_ARGS:-type=x300,addr=192.168.40.2,time_source=internal,master_clock_rate=184.32e6,num_recv_frames=64,num_send_frames=64}
+      X310_CLOCK: ${X310_CLOCK:-external}
+      X310_SYNC: ${X310_SYNC:-internal}
+      GNB_TX_GAIN: ${GNB_TX_GAIN:-31.5}
+      GNB_RX_GAIN: ${GNB_RX_GAIN:-31.5}
+      NR_DL_ARFCN: ${NR_DL_ARFCN:-368500}
+      NR_BW_MHZ: ${NR_BW_MHZ:-20}
+    volumes:
+      - ..:/workspace
+      - /dev:/dev
+      - /dev/bus/usb:/dev/bus/usb
+    command:
+      - /bin/bash
+      - /workspace/testbed/scripts/start-srsran-gnb.sh
+
+  srsue_b210:
+    container_name: testbed-srsue-b210
+    image: 5g_testbed/radio
+    build:
+      context: ..
+      dockerfile: testbed/docker/Dockerfile.allinone
+      args:
+        UHD_VERSION: 4.8.0.0
+    restart: unless-stopped
+    privileged: true
+    network_mode: host
+    working_dir: /workspace
+    depends_on:
+      srsran_gnb:
+        condition: service_started
+    environment:
+      WORKSPACE_ROOT: /workspace
+      SRSUE_CONFIG_TEMPLATE: /workspace/testbed/configs/srsue/ue.conf.tpl
+      SRSUE_CONFIG_RENDERED: /workspace/testbed/runtime/ue.conf
+      SUBSCRIBER_ENV_FILE: /workspace/testbed/subscribers/test-ue.env
+      SRSRAN_4G_SRC: /workspace/testbed/sources/srsRAN_4G
+      SRSUE_BIN: /workspace/testbed/sources/srsRAN_4G/build-docker/srsue/src/srsue
+      B210_SERIAL: ${B210_SERIAL:-}
+      B210_CLOCK_SOURCE: ${B210_CLOCK_SOURCE:-external}
+      B210_TIME_SOURCE: ${B210_TIME_SOURCE:-external}
+      B210_TX_GAIN: ${B210_TX_GAIN:-80}
+      B210_RX_GAIN: ${B210_RX_GAIN:-40}
+      UE_FREQ_OFFSET: ${UE_FREQ_OFFSET:-0}
+      B210_OTW_FORMAT: ${B210_OTW_FORMAT:-sc12}
+      B210_NUM_RECV_FRAMES: ${B210_NUM_RECV_FRAMES:-256}
+      B210_NUM_SEND_FRAMES: ${B210_NUM_SEND_FRAMES:-256}
+      B210_RECV_FRAME_SIZE: ${B210_RECV_FRAME_SIZE:-8184}
+      B210_SEND_FRAME_SIZE: ${B210_SEND_FRAME_SIZE:-8184}
+      B210_EXTRA_DEVICE_ARGS: ${B210_EXTRA_DEVICE_ARGS:-}
+      NR_DL_ARFCN: ${NR_DL_ARFCN:-368500}
+      SSB_NR_ARFCN: ${SSB_NR_ARFCN:-368410}
+      SRSUE_RTPRIO: ${SRSUE_RTPRIO:-20}
+      SRSUE_CPUSET: ${SRSUE_CPUSET:-2-5}
     ulimits:
       rtprio: 99
       memlock: -1
     volumes:
       - ..:/workspace
-      - ../testbed/sources/open5gs:/opt/src/open5gs
-      - ../testbed/sources/srsRAN_Project:/opt/src/srsRAN_Project
-      - ../testbed/sources/srsRAN_4G:/opt/src/srsRAN_4G
       - /dev:/dev
       - /dev/bus/usb:/dev/bus/usb
       - /dev/net/tun:/dev/net/tun
-      - testbed_mongodb:/var/lib/mongodb
     command:
       - /bin/bash
-      - -lc
-      - exec sleep infinity
+      - /workspace/testbed/scripts/start-srsue.sh
 
-volumes:
-  testbed_mongodb:
+networks:
+  ran:
+    name: testbed_ran
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.53.1.0/24

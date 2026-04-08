@@ -4,14 +4,14 @@
 
 cu_cp:
   amf:
-    # Open5GS AMF address inside the host-networked testbed.
-    addr: 127.0.0.5
+    # Open5GS AMF address exposed by the dockerized 5GC.
+    addr: __OPEN5GS_IP__
     port: 38412
-    # Local bind address for NGAP toward the AMF.
-    bind_addr: 127.0.0.1
+    # Host-side address that reaches the docker bridge where the 5GC lives.
+    bind_addr: __GNB_BIND_ADDR__
     supported_tracking_areas:
       # TAC/PLMN/SST here must match Open5GS and the UE profile.
-      - tac: 1
+      - tac: 7
         plmn_list:
           - plmn: "00101"
             tai_slice_support_list:
@@ -40,7 +40,7 @@ cell_cfg:
   # 15 kHz SCS is what the paired srsUE template expects.
   common_scs: 15
   plmn: "00101"
-  tac: 1
+  tac: 7
   pci: 1
   pdcch:
     dedicated:

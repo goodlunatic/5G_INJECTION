@@ -1,13 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-WORKSPACE_ROOT="${WORKSPACE_ROOT:-/workspace}"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+TESTBED_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+REPO_ROOT="$(cd -- "${TESTBED_DIR}/.." && pwd)"
+
+WORKSPACE_ROOT="${WORKSPACE_ROOT:-${REPO_ROOT}}"
 TEMPLATE="${SRSUE_CONFIG_TEMPLATE:-${WORKSPACE_ROOT}/testbed/configs/srsue/ue.conf.tpl}"
 RENDERED="${SRSUE_CONFIG_RENDERED:-${WORKSPACE_ROOT}/testbed/runtime/ue.conf}"
 LOG_DIR="${WORKSPACE_ROOT}/testbed/logs/srsue"
 CONSOLE_LOG="${LOG_DIR}/ue-console.log"
 SUBSCRIBER_ENV_FILE="${SUBSCRIBER_ENV_FILE:-${WORKSPACE_ROOT}/testbed/subscribers/test-ue.env}"
-SRSRAN_4G_SRC="${SRSRAN_4G_SRC:-/opt/src/srsRAN_4G}"
+SRSRAN_4G_SRC="${SRSRAN_4G_SRC:-${WORKSPACE_ROOT}/testbed/sources/srsRAN_4G}"
 SRSUE_BIN="${SRSUE_BIN:-${SRSRAN_4G_SRC}/build/srsue/src/srsue}"
 
 mkdir -p "$(dirname "${RENDERED}")" "${LOG_DIR}"
