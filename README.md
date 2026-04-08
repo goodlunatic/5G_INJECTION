@@ -480,3 +480,4 @@ tail -f testbed/logs/srsue/ue.log
 - [testbed/configs/srsran/gnb.yml.tpl](testbed/configs/srsran/gnb.yml.tpl)
 - [testbed/configs/srsue/ue.conf.tpl](testbed/configs/srsue/ue.conf.tpl)
 - [testbed/subscribers/test-ue.env](testbed/subscribers/test-ue.env)
+
