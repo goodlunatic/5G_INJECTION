@@ -1,0 +1,26 @@
+services:
+  srsran_project:
+    build:
+      context: .
+    container_name: srsran_project
+    privileged: true
+    network_mode: host
+    working_dir: /home/workspace
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+    volumes:
+      - .:/home/workspace
+      - /dev/bus/usb:/dev/bus/usb
+      - uhd_images:/usr/share/uhd/images
+    environment:
+      UHD_IMAGES_DIR: /usr/share/uhd/images
+      X310_INTERFACE: enp4s0
+    stdin_open: true
+    tty: true
+    cap_add:
+      - SYS_PTRACE
+      - NET_ADMIN
+      - SYS_ADMIN
+
+volumes:
+  uhd_images:
