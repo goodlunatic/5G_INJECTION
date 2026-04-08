@@ -1,0 +1,73 @@
+FROM ubuntu:22.04
+
+ARG OPEN5GS_TAG=v2.7.7
+ARG SRSRAN_PROJECT_TAG=release_24_10_1
+ARG SRSRAN_4G_TAG=release_23_11
+ARG UHD_VERSION=4.8.0.0
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Asia/Shanghai
+ENV OPEN5GS_SRC=/opt/src/open5gs
+ENV SRSRAN_PROJECT_SRC=/opt/src/srsRAN_Project
+ENV SRSRAN_4G_SRC=/opt/src/srsRAN_4G
+
+SHELL ["/bin/bash", "-lc"]
+
+RUN ln -snf "/usr/share/zoneinfo/${TZ}" /etc/localtime && echo "${TZ}" > /etc/timezone
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates curl git gnupg lsb-release \
+    iproute2 iptables iputils-ping net-tools procps util-linux \
+    build-essential gcc g++ cmake meson ninja-build pkg-config \
+    python3 python3-pip python3-mako python3-requests python3-numpy python3-ruamel.yaml \
+    flex bison \
+    libsctp-dev libgnutls28-dev libgcrypt20-dev libssl-dev \
+    libmongoc-dev libbson-dev libyaml-dev libnghttp2-dev libmicrohttpd-dev \
+    libcurl4-openssl-dev libtins-dev libtalloc-dev libidn11-dev \
+    libfftw3-dev libmbedtls-dev libyaml-cpp-dev libgtest-dev libboost-all-dev \
+    libconfig++-dev libusb-1.0-0 libusb-1.0-0-dev libudev-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN curl -fsSL https://www.mongodb.org/static/pgp/server-8.0.asc \
+    | gpg --dearmor -o /usr/share/keyrings/mongodb-server-8.0.gpg && \
+    echo "deb [ signed-by=/usr/share/keyrings/mongodb-server-8.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/8.0 multiverse" \
+      > /etc/apt/sources.list.d/mongodb-org-8.0.list && \
+    apt-get update && apt-get install -y --no-install-recommends mongodb-org-server mongodb-mongosh && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN git clone --depth 1 --branch "v${UHD_VERSION}" https://github.com/EttusResearch/uhd.git /tmp/uhd && \
+    cmake -S /tmp/uhd/host -B /tmp/uhd/build \
+      -DENABLE_PYTHON_API=OFF \
+      -DENABLE_MANUAL=OFF \
+      -DENABLE_TESTS=OFF && \
+    cmake --build /tmp/uhd/build -j"$(nproc)" && \
+    cmake --install /tmp/uhd/build && \
+    ldconfig && \
+    uhd_images_downloader -t x3xx && \
+    uhd_images_downloader -t b2xx && \
+    rm -rf /tmp/uhd
+
+RUN git clone --depth 1 --branch "${OPEN5GS_TAG}" https://github.com/open5gs/open5gs "${OPEN5GS_SRC}" && \
+    cd "${OPEN5GS_SRC}" && \
+    meson setup build && \
+    ninja -C build
+
+RUN git clone --depth 1 --branch "${SRSRAN_PROJECT_TAG}" https://github.com/srsRAN/srsRAN_Project.git "${SRSRAN_PROJECT_SRC}" && \
+    cd "${SRSRAN_PROJECT_SRC}" && \
+    cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release && \
+    ninja -C build gnb
+
+RUN git clone --depth 1 --branch "${SRSRAN_4G_TAG}" https://github.com/srsran/srsRAN_4G.git "${SRSRAN_4G_SRC}" && \
+    cmake -S "${SRSRAN_4G_SRC}" -B "${SRSRAN_4G_SRC}/build" -G Ninja \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DENABLE_GUI=OFF \
+      -DENABLE_SRSUE=ON \
+      -DENABLE_SRSENB=OFF \
+      -DENABLE_SRSEPC=OFF && \
+    ninja -C "${SRSRAN_4G_SRC}/build" srsue srsran_rf_uhd && \
+    cp "${SRSRAN_4G_SRC}/build/lib/src/phy/rf/libsrsran_rf_uhd.so" /usr/local/lib/ && \
+    ldconfig
+
+WORKDIR /workspace
+
+CMD ["/bin/bash"]
