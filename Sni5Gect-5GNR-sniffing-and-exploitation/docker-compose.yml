@@ -1,0 +1,64 @@
+services:
+  sni5gect:
+    image: sni5gect
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sni5gect
+    privileged: true
+    restart: unless-stopped
+    entrypoint: /sbin/init
+    network_mode: host
+    volumes:
+      - "/dev/:/dev/"
+    deploy:
+      resources:
+        reservations:
+          cpus: '1'
+          memory: 1G
+
+  srsran:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: srsran5g
+    image: srsran
+    container_name: srsran
+    restart: unless-stopped
+    privileged: true
+    command: sleep infinity
+    volumes:
+      - "/dev/bus/usb/:/dev/bus/usb/"
+    network_mode: host
+
+  open5gs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: open5gs
+    image: open5gs
+    container_name: open5gs
+    restart: unless-stopped
+    privileged: true
+    command: sleep infinity
+    network_mode: host
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  mongodb:
+    image: mongo:8.0
+    container_name: mongodb
+    restart: unless-stopped
+    volumes:
+      - dbdata:/data/db
+    network_mode: host
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  dbdata:
