@@ -5,6 +5,7 @@ paper/
 
 # Common generated directories
 **/build/
+**/examples/
 **/release/
 **/logs/
 **/records/
