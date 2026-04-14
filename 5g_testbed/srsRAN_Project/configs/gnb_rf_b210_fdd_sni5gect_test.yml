@@ -1,9 +1,5 @@
-# This example configuration outlines how to configure the srsRAN Project gNB to create a single FDD cell
-# transmitting in band 3, with 20 MHz bandwidth and 15 kHz sub-carrier-spacing. A USRP B200 is configured
-# as the RF frontend using split 8, with a Leo Bodnar GPSDO as an external reference clock.
-
-# This particular configuration is intended to be used with srsUE. Note the `pdcch` parameters set in the
-# `cell_cfg` section. These are set to match the capabilities of srsUE.
+# Test config for running the lab gNB on one B210 while Sni5Gect sniffs with a second B210.
+# This keeps the original band 3 / 20 MHz / 15 kHz setup used for srsUE compatibility.
 
 cu_cp:
   amf:
@@ -20,7 +16,7 @@ cu_cp:
 
 ru_sdr:
   device_driver: uhd
-  device_args: type=b200
+  device_args: type=b200,serial=32DC32E
   clock: external
   srate: 23.04
   tx_gain: 75
@@ -48,11 +44,11 @@ cell_cfg:
     mcs_table: qam64
 
 log:
-  filename: ../logs/gnb.log
+  filename: /tmp/gnb_sni5gect_test.log
   all_level: info
 
 pcap:
   mac_enable: enable
-  mac_filename: ../logs/gnb_mac.pcap
+  mac_filename: /tmp/gnb_sni5gect_test_mac.pcap
   ngap_enable: enable
-  ngap_filename: ../logs/gnb_ngap.pcap
+  ngap_filename: /tmp/gnb_sni5gect_test_ngap.pcap

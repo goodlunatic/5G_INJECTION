@@ -35,6 +35,6 @@ cell_cfg:
 
 pcap:
   mac_enable: true                                             # Set to true to enable MAC-layer PCAPs.
-  mac_filename: ../pcap/gnb_mac.pcap                               # Path where the MAC PCAP is stored.
+  mac_filename: ../logs/gnb_mac.pcap                               # Path where the MAC PCAP is stored.
   ngap_enable: true                                            # Set to true to enable NGAP PCAPs.
-  ngap_filename: ../pcap/gnb_ngap.pcap                             # Path where the NGAP PCAP is stored.
+  ngap_filename: ../logs/gnb_ngap.pcap                             # Path where the NGAP PCAP is stored.

@@ -33,11 +33,11 @@ cell_cfg:
   pci: 1
 
 log:
-  filename: /tmp/gnb.log
+  filename: ../logs/gnb.log
   all_level: warning
 
 pcap:
-  mac_enable: false
-  mac_filename: /tmp/gnb_mac.pcap
+  mac_enable: true
+  mac_filename: ../logs/gnb_mac.pcap
   ngap_enable: false
-  ngap_filename: /tmp/gnb_ngap.pcap
+  ngap_filename: ../logs/gnb_ngap.pcap

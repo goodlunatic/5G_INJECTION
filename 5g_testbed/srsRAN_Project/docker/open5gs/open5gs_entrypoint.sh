@@ -1,7 +1,8 @@
 #! /bin/bash
 
 export UE_GATEWAY_IP="${UE_IP_BASE}.1"
-export UE_IP_RANGE="${UE_IP_BASE}.0/24"
+# Use /16 supernet to cover all UE subnets (including static IPs like 10.45.1.x, 10.45.2.x)
+export UE_IP_RANGE="${UE_IP_BASE%.*}.0.0/16"
 
 INSTALL_ARCH=x86_64-linux-gnu
 if [ "$(uname -m)" = "aarch64" ]; then
@@ -31,6 +32,9 @@ do
     echo waiting for mongodb
     sleep 1
 done
+
+# enable IP forwarding so UE traffic can be routed to the internet
+sysctl -w net.ipv4.ip_forward=1
 
 # setup ogstun and routing
 python3 setup_tun.py --ip_range ${UE_IP_RANGE}
