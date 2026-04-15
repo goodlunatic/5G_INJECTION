@@ -1,9 +1,10 @@
 # Workspace tooling
-.codex/
-.waylog/
 paper/
 
 # Common generated directories
+**/.codex/
+**/.waylog/
+**/.claude/
 **/build/
 **/examples/
 **/release/
