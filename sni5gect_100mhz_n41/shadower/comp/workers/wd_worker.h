@@ -29,7 +29,10 @@ private:
   std::mutex           mtx;
   srsran_duplex_mode_t duplex_mode;
 
-  uint8_t buffer[2048]{};
+  // Buffer must hold fake_pcap_header (48B) + fixed fields (~12B) + max MAC PDU.
+  // NR 20 MHz (106 PRB) max TBS is ~12,600 bytes; use 16384 for safety.
+  static constexpr uint32_t WD_BUFFER_SIZE = 16384;
+  uint8_t buffer[WD_BUFFER_SIZE]{};
 };
 
 #endif // WD_WORKER_H

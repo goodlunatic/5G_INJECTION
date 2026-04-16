@@ -20,6 +20,14 @@ void WDWorker::process(uint8_t*    data,
 {
   /* Only one packet can be processed at a time */
   std::lock_guard<std::mutex> lock(mtx);
+  /* fake header overhead: 48 (pcap header) + ~16 (fixed fields + padding) = 64 bytes */
+  constexpr uint32_t FAKE_HDR_OVERHEAD = 64;
+  if (len + FAKE_HDR_OVERHEAD > (uint32_t)sizeof(buffer)) {
+    logger.warning("Packet too large for wdissector buffer (%u > %u), skipping dissection",
+                   len + FAKE_HDR_OVERHEAD,
+                   (uint32_t)sizeof(buffer));
+    return;
+  }
   /* apply the fake header to the packet and run the packet dissection */
   int length = add_fake_header(buffer, data, len, rnti, frame_number, slot_number, direction, duplex_mode);
   /* Run pre-dissection to attach the filters */
