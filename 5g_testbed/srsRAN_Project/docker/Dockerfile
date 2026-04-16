@@ -39,6 +39,9 @@ ARG NUM_JOBS=""
 
 FROM ubuntu:$OS_VERSION AS builder-base
 
+# Replace apt sources with USTC mirror (http only)
+RUN sed -i 's|http://archive.ubuntu.com|http://mirrors.ustc.edu.cn|g; s|http://security.ubuntu.com|http://mirrors.ustc.edu.cn|g; s|https://archive.ubuntu.com|http://mirrors.ustc.edu.cn|g; s|https://security.ubuntu.com|http://mirrors.ustc.edu.cn|g' /etc/apt/sources.list.d/ubuntu.sources
+
 # Adding the complete repo to the context, in /src folder
 ADD . /src
 # An alternative could be to download the repo
@@ -112,6 +115,9 @@ RUN cp /src/build/apps/cu/srscu             /tmp/srscu                     && \
 ################
 
 FROM ubuntu:$OS_VERSION AS runtime
+
+# Replace apt sources with USTC mirror (http only)
+RUN sed -i 's|http://archive.ubuntu.com|http://mirrors.ustc.edu.cn|g; s|http://security.ubuntu.com|http://mirrors.ustc.edu.cn|g; s|https://archive.ubuntu.com|http://mirrors.ustc.edu.cn|g; s|https://security.ubuntu.com|http://mirrors.ustc.edu.cn|g' /etc/apt/sources.list.d/ubuntu.sources
 
 ARG UHD_VERSION
 ARG DPDK_VERSION

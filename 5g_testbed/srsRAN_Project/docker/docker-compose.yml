@@ -26,9 +26,13 @@ services:
       target: open5gs
       args:
         OS_VERSION: "22.04"
-        OPEN5GS_VERSION: "v2.7.0"
+        OPEN5GS_VERSION: "v2.7.5"
     env_file:
       - ${OPEN_5GS_ENV_FILE:-open5gs/open5gs.env}
+    environment:
+      - http_proxy=
+      - https_proxy=
+      - no_proxy=
     privileged: true
     ports:
       - "9999:9999/tcp"

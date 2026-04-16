@@ -12,6 +12,9 @@ FROM ubuntu:$OS_VERSION AS base
 ENV PYTHONBUFFERED=1
 ENV DEBIAN_FRONTEND=noninteractive
 
+# Replace apt sources with USTC mirror
+RUN sed -i 's|http://archive.ubuntu.com|http://mirrors.ustc.edu.cn|g; s|http://security.ubuntu.com|http://mirrors.ustc.edu.cn|g' /etc/apt/sources.list
+
 RUN DEBIAN_FRONTEND=noninteractive apt-get update \
     && apt install -y software-properties-common \
     && rm -rf /var/lib/apt/lists/*
