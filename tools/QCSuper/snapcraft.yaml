@@ -1,0 +1,61 @@
+name: qcsuper # you probably want to 'snapcraft register <name>'
+title: QCSuper
+contact: https://matrix.to/#/#qcsuper:matrix.org
+license: GPL-3.0+
+issues: https://github.com/P1sec/QCSuper/issues
+source-code: https://github.com/P1sec/QCSuper
+website: https://www.p1sec.com/blog/presenting-qcsuper-a-tool-for-capturing-your-2g-3g-4g-air-traffic-on-qualcomm-based-phones
+base: core24 # the base snap is the execution environment for this snap
+version: '2.1.2' # just for humans, typically '1.2+git' or '1.3.2'
+summary: Capture raw 2G/3G/4G frames using Qualcomm-based phones and modems
+description: |
+  QCSuper is a tool communicating with Qualcomm-based phones and modems,
+  allowing to capture raw 2G/3G/4G (and for certain models 5G) radio
+  frames, among other things.
+  
+  It will allow you to generate PCAP captures of it using either a rooted
+  Android phone, an USB dongle or an existing capture in another format.
+
+grade: stable
+confinement: strict
+
+apps:
+  qcsuper:
+    extensions: [kde-neon-6]
+    command: bin/qcsuper
+    environment:
+      LD_LIBRARY_PATH: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/android:$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR:$SNAP/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+    plugs:
+      - network
+      - network-status
+      - qcsuper-usb-plug
+      - qcsuper-serial-port
+      - raw-usb
+
+plugs:
+  qcsuper-usb-plug:
+    interface: custom-device
+    custom-device: qcsuper-usb-device
+  qcsuper-serial-port:
+    interface: serial-port
+
+slots:
+  qcsuper-usb-slot:
+    interface: custom-device
+    custom-device: qcsuper-usb-device
+    devices:
+      - /dev/ttyUSB[0-9]*
+      - /dev/ttyHS[0-9]*
+
+parts:
+  qcsuper:
+    plugin: python
+    stage-packages:
+      - adb
+      - wireshark
+    override-pull: |
+      craftctl default
+
+      rm -f src/qcsuper/inputs/external/adb/* || :
+      rm -f src/qcsuper/inputs/external/adb/lib64/* || :
+    source: .

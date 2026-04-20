@@ -1,5 +1,6 @@
 # Workspace tooling
 paper/
+experiment_logs/
 
 # Common generated directories
 **/.codex/

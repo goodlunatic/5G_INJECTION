@@ -1,0 +1,88 @@
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[project]
+name = "qcsuper"
+version = "2.1.2"
+description = "A tool for capturing 2G, 3G, 4G radio frames with Qualcomm basebands"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [{ name = "P1 Security - Marin Moulinier" }]
+maintainers = [{ name = "P1 Security - Marin Moulinier" }]
+keywords = ["pcap", "wireshark", "radio", "qcsuper", "capture analysis"]
+requires-python = ">=3.7"
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Telecommunications Industry",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Topic :: System :: Networking",
+    "Topic :: Communications :: Telephony",
+    "Topic :: Security",
+    "Environment :: Console"
+]
+dependencies = [
+    "crcmod>=1.7",
+    "pycrate>=0.7.0",
+    "pyserial>=3.5",
+    "pyusb>=1.2.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/P1sec/QCSuper"
+Repository = "https://github.com/P1sec/QCSuper"
+Issues = "https://github.com/P1sec/QCSuper/issues"
+
+[project.scripts]
+qcsuper = "qcsuper.main:main"
+
+[tool.poetry]
+name = "qcsuper"
+packages = [
+    {include = "qcsuper", from = "src"}
+]
+include = [
+    "qcsuper/inputs/adb_bridge/*",
+    "qcsuper/inputs/adb_wsl2_bridge/*",
+    "qcsuper/inputs/external/*",
+    "qcsuper/inputs/external/adb/*",
+    "qcsuper/inputs/external/adb/lib64/*",
+    "qcsuper/modules/wireshark_plugin/*"
+]
+
+[tool.poetry.build]
+generate-setup-file = true
+
+[tool.setuptools_scm]
+
+[tool.setuptools]
+include-package-data = true
+packages = [
+    "qcsuper",
+    "qcsuper.inputs",
+    "qcsuper.inputs.adb_bridge",
+    "qcsuper.inputs.adb_wsl2_bridge",
+    "qcsuper.inputs.external",
+    "qcsuper.inputs.external.adb",
+    "qcsuper.inputs.external.adb.lib64",
+    "qcsuper.protocol",
+    "qcsuper.modules",
+    "qcsuper.modules.efs_shell_commands",
+    "qcsuper.modules.wireshark_plugin"
+]
+
+[tool.setuptools.package-data]
+"qcsuper.inputs.adb_bridge" = ["*"]
+"qcsuper.inputs.adb_wsl2_bridge" = ["*"]
+"qcsuper.inputs.external" = ["*"]
+"qcsuper.inputs.external.adb" = ["*"]
+"qcsuper.inputs.external.adb.lib64" = ["*"]
+"qcsuper.modules.wireshark_plugin" = ["*"]
+
+[tool.ruff]
+line-length = 79
+
+[tool.ruff.format]
+quote-style = "single"
