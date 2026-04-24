@@ -52,26 +52,22 @@ def main(if_name, ip_range):
     except NetlinkError:
         pass
 
-    # Use iptables-legacy to match the host/Docker iptables backend,
-    # avoiding nft vs legacy mismatch that can cause NAT rules to be ignored.
-    iptables_cmd = 'iptables-legacy'
-
     # Allow INPUT on the TUN interface
     subprocess.run([
-        iptables_cmd, '-A', 'INPUT', '-i', if_name, '-j', 'ACCEPT'
+        'iptables', '-A', 'INPUT', '-i', if_name, '-j', 'ACCEPT'
     ], check=True)
 
     # Allow FORWARD through the TUN interface in both directions
     subprocess.run([
-        iptables_cmd, '-A', 'FORWARD', '-i', if_name, '-j', 'ACCEPT'
+        'iptables', '-A', 'FORWARD', '-i', if_name, '-j', 'ACCEPT'
     ], check=True)
     subprocess.run([
-        iptables_cmd, '-A', 'FORWARD', '-o', if_name, '-j', 'ACCEPT'
+        'iptables', '-A', 'FORWARD', '-o', if_name, '-j', 'ACCEPT'
     ], check=True)
 
     # Masquerade UE traffic going out to the internet (NOT back through ogstun)
     subprocess.run([
-        iptables_cmd, '-t', 'nat', '-A', 'POSTROUTING',
+        'iptables', '-t', 'nat', '-A', 'POSTROUTING',
         '-s', ip_range.with_prefixlen,
         '!', '-o', if_name,
         '-j', 'MASQUERADE'

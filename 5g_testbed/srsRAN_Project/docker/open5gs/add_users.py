@@ -57,7 +57,7 @@ def add_user(imsi, key="00112233445566778899aabbccddeeff", op=None,
             "amf": amf,
             "op": op,
             "opc": opc,
-            "sqn": "000000000000" # 把订阅者的 SQN 重置为 0，与 SIM 卡重新同步
+            "sqn": bson.int64.Int64(0) # 把订阅者的 SQN 重置为 0，与 SIM 卡重新同步
         },
         "schema_version": 1,
         "__v": 0
