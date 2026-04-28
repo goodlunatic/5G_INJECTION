@@ -76,7 +76,7 @@ def read_from_db(db_file):
         return None
 
     for line in db_file:
-        if line.startswith("#"):
+        if line.startswith("#") or line.strip() == "":
             pass
         else:
             try:
