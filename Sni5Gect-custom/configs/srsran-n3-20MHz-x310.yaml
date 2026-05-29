@@ -4,13 +4,19 @@ cell:
   scs_common: 15 # Subcarrier Spacing for common (kHz)
   scs_ssb: 15 # Subcarrier Spacing for SSB (kHz)
   ssb_period_ms: 10 # SSB periodicity in milliseconds
-  dl_arfcn: 373000 # Downlink ARFCN
-  ssb_arfcn: 371530 # SSB ARFCN
-
+  # dl_arfcn: 373000 # Downlink ARFCN
+  # ssb_arfcn: 371530 # SSB ARFCN
+  dl_arfcn: 368500
+  ssb_arfcn: 368410
 
 source:
   source_type: uhd
-  source_params: type=x300,master_clock_rate=184.32e6,clock=gpsdo,sync=gpsdo,sampling_rate=23.04e6
+  # 不使用外部时钟源（内部时钟）
+  # source_params: type=x300,addr=192.168.40.2,master_clock_rate=184.32e6,sampling_rate=23.04e6
+  # 使用外部时钟源（接外部10MHz参考时，取消下行注释并注释上行）
+  source_params: type=x300,addr=192.168.40.2,master_clock_rate=184.32e6,sampling_rate=23.04e6,clock=external,sync=external
+  # 使用 GPSDO（需要 X310 插有 GPSDO 模块且 GPS 已锁定）
+  # source_params: type=x300,addr=192.168.40.2,master_clock_rate=184.32e6,clock=gpsdo,sync=gpsdo,sampling_rate=23.04e6
 
 enable_recorder: false # record the IQ samples to file
 pcap_folder: logs/
@@ -23,16 +29,16 @@ rf:
   padding:
     front_padding: 1644 # Number of IQ samples to pad in front of each burst
     back_padding: 1656 # Number of IQ samples to pad at the end of each burst
-  channels:
-    - rx_frequency: 1865e6
-      tx_frequency: 1865e6
+  channels: # 这里的配置可以到CellularPro中查看
+    - rx_frequency: 1842.5e6
+      tx_frequency: 1842.5e6
       rx_offset: 0
       tx_offset: 3000
       rx_gain: 24
       tx_gain: 30
       enable: true
-    - rx_frequency: 1770e6
-      tx_frequency: 1770e6
+    - rx_frequency: 1747.5e6
+      tx_frequency: 1747.5e6
       rx_offset: 0
       tx_offset: 0
       rx_gain: 24

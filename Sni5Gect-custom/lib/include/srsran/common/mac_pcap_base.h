@@ -129,6 +129,7 @@ private:
   void pack_and_queue_nr(uint8_t* payload,
                          uint32_t payload_len,
                          uint32_t tti,
+                         uint32_t slots_per_subframe,
                          uint16_t crnti,
                          uint16_t ue_id,
                          uint8_t  harqid,

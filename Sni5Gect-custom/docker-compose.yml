@@ -1,10 +1,11 @@
 services:
   sni5gect:
-    image: sni5gect
+    image: sni5gect-custom
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: sni5gect
+    pull_policy: never        # 不从远程拉取，只用本地
+    container_name: sni5gect-custom
     privileged: true
     restart: unless-stopped
     entrypoint: /sbin/init

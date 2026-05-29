@@ -1,58 +1,88 @@
-# This example configuration outlines how to configure the srsRAN Project gNB to create a single FDD cell
-# transmitting in band 3, with 20 MHz bandwidth and 15 kHz sub-carrier-spacing. A USRP B200 is configured
-# as the RF frontend using split 8, with a Leo Bodnar GPSDO as an external reference clock.
-
-# This particular configuration is intended to be used with srsUE. Note the `pdcch` parameters set in the
-# `cell_cfg` section. These are set to match the capabilities of srsUE.
+# =====================================================================
+# srsRAN Project gNB 配置文件（详细中文注释版）
+#
+# 功能：
+# - 创建一个 NR FDD 小区
+# - 工作于 Band 3
+# - 带宽 20 MHz
+# - 子载波间隔 15 kHz
+# - 使用 USRP B200/B210 作为 SDR 射频前端
+# - 使用 Leo Bodnar GPSDO 外部时钟源
+# - 对接自建 5GC（AMF: 10.53.1.2）
+#
+# 该配置特别适配：
+# - srsUE
+# - split 8 架构
+#
+# =====================================================================
 
 cu_cp:
   amf:
-    addr: 10.53.1.2
-    port: 38412
-    bind_addr: 10.53.1.1
+    addr: 10.53.1.2                  # AMF 地址（5GC核心网）
+    port: 38412                      # NGAP SCTP 默认端口
+    bind_addr: 10.53.1.1             # gNB 本地绑定地址
+
     supported_tracking_areas:
-      - tac: 7
+      - tac: 7                       # Tracking Area Code
+
         plmn_list:
-          - plmn: "00101"
+          - plmn: "00101"            # 测试 PLMN（MCC=001, MNC=01）
+
             tai_slice_support_list:
-              - sst: 1
-  inactivity_timer: 7200
+              - sst: 1               # Slice/Service Type，1=eMBB
+
+  inactivity_timer: 7200             # UE 不活动定时器（秒）
+
 
 ru_sdr:
-  device_driver: uhd
-  device_args: type=b200
-  clock: external
-  srate: 23.04
-  tx_gain: 75
-  rx_gain: 75
+  device_driver: uhd                 # 使用 UHD 驱动（USRP）
+  device_args: type=b200             # B200/B210 设备类型
+
+  clock: external                    # 使用外部 10MHz 时钟（GPSDO）
+
+  srate: 23.04                       # 23.04 Msps，对应20MHz NR/15kHz SCS
+
+  tx_gain: 75                        # 发射增益
+  rx_gain: 75                        # 接收增益
+
 
 cell_cfg:
-  dl_arfcn: 368500
-  band: 3
-  channel_bandwidth_MHz: 20
-  common_scs: 15
-  plmn: "00101"
-  tac: 7
+  dl_arfcn: 368500                   # Band 3 下行 ARFCN（约1842.5 MHz）
+  band: 3                            # NR Band 3
+
+  channel_bandwidth_MHz: 20          # 小区带宽 20MHz（对应106 PRB）
+  common_scs: 15                     # 子载波间隔 15kHz（μ=0）
+
+  plmn: "00101"                      # 小区广播 PLMN
+  tac: 7                             # TAC，需与 AMF 一致
+
   pdcch:
     dedicated:
-      ss2_type: common
-      dci_format_0_1_and_1_1: false
+      ss2_type: common               # SearchSpace2 使用 common 类型
+      dci_format_0_1_and_1_1: false  # 使用 DCI 0_0/1_0，兼容 srsUE
+
     common:
-      ss0_index: 0
-      coreset0_index: 12
+      ss0_index: 0                   # SearchSpace0 配置
+      coreset0_index: 12             # CORESET0 配置（srsUE 常用兼容值）
+
   prach:
-    prach_config_index: 1
+    prach_config_index: 1            # PRACH 配置索引
+
   pdsch:
-    mcs_table: qam64
+    mcs_table: qam64                 # 下行最高支持 64QAM
+
   pusch:
-    mcs_table: qam64
+    mcs_table: qam64                 # 上行最高支持 64QAM
+
 
 log:
-  filename: ../logs/gnb.log
-  all_level: info
+  filename: ../logs/gnb.log          # gNB 日志文件
+  all_level: info                    # 日志等级：debug/info/warning/error
+
 
 pcap:
-  mac_enable: enable
-  mac_filename: ../logs/gnb_mac.pcap
-  ngap_enable: enable
-  ngap_filename: ../logs/gnb_ngap.pcap
+  mac_enable: true                 # 开启 MAC 层抓包
+  mac_filename: ../logs/gnb_mac.pcap # MAC PCAP 输出文件
+
+  ngap_enable: true                # 开启 NGAP 抓包
+  ngap_filename: ../logs/gnb_ngap.pcap # NGAP PCAP 输出文件

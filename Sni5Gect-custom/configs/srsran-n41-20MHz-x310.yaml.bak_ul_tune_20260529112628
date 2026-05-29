@@ -1,0 +1,88 @@
+# =============================================================================
+# Sni5Gect 配置文件 - Band n41 / 20MHz / USRP X310
+# 用途: 配合 srsRAN gNB (srsran-n41-20MHz.yml) 进行 5G NR 下行嗅探与注入
+# 硬件: Ettus USRP X310 (带 GPSDO 时钟源)
+# =============================================================================
+
+# ----- 小区参数 (需与 gNB 配置严格一致) -----
+cell:
+  band: 41                # NR 频段号, Band 41 (2496-2690 MHz), TDD 模式
+  nof_prb: 51             # 物理资源块(PRB)数量, 20MHz 带宽 + 30kHz SCS 对应 51 个 PRB
+  scs_common: 30          # 数据信道子载波间隔 (kHz), Band 41 使用 30kHz
+  scs_ssb: 30             # SSB (同步信号块) 子载波间隔 (kHz), Band 41 Case C 使用 30kHz
+  ssb_period_ms: 10       # SSB 周期 (毫秒), 即每 10ms 发送一次同步信号块
+  dl_arfcn: 510030        # 下行载波 ARFCN (绝对射频信道号), 对应中心频率 2550.15 MHz
+  ssb_arfcn: 509070       # SSB 的 ARFCN, 需与 gNB 实际发射的 SSB 位置匹配
+
+
+# ----- 射频源配置 (X310 专用) -----
+source:
+  source_type: uhd
+  source_params: type=x300,addr=192.168.40.2,master_clock_rate=184.32e6,sampling_rate=23.04e6,clock=external,sync=external
+
+enable_recorder: false    # 是否录制 IQ 原始采样数据到文件 (调试用, 会占用大量磁盘)
+pcap_folder: logs/        # PCAP 抓包文件的保存目录
+
+# ----- 射频前端参数 -----
+rf:
+  sample_rate: 23.04e6    # 采样率 (Hz), 20MHz 带宽 + 30kHz SCS 标准采样率为 23.04 MSps
+  num_channels: 1         # 射频通道数, 单通道收发
+  uplink_cfo: 0   # 上行载波频率偏移校正 (Hz), 用于补偿 X310 的频率漂移
+  downlink_cfo: 0         # 下行载波频率偏移校正 (Hz), 当前未校正
+  padding:
+    front_padding: 0      # 每个突发前端填充的 IQ 采样点数 (用于时序微调)
+    back_padding: 0       # 每个突发后端填充的 IQ 采样点数
+  channels:
+    - rx_frequency: 2550.15e6   # 接收频率 (Hz), 由 dl_arfcn=510030 计算: 510030 * 5kHz = 2550.15 MHz
+      tx_frequency: 2550.15e6   # 发射频率 (Hz), Band 41 为 TDD 模式, 上下行同频
+      rx_offset: 0              # 接收频率偏移 (Hz)
+      tx_offset: 0              # 发射频率偏移 (Hz)
+      rx_gain: 31               # 接收增益 (dB), X310 典型值, 过高会导致信号饱和
+      tx_gain: 31               # 发射增益 (dB), X310 典型值, 注入时的发射功率
+      enable: true              # 启用此通道
+
+# ----- 工作线程池配置 -----
+workers:
+  pool_size: 24           # 总工作线程池大小, 建议不超过 CPU 核心数
+  n_ue_dl_worker: 4       # UE 下行处理线程数 (解码 UE 的下行数据)
+  n_ue_ul_worker: 4       # UE 上行处理线程数 (解码 UE 的上行数据)
+  n_gnb_dl_worker: 4      # gNB 下行处理线程数 (解码广播/系统消息)
+  n_gnb_ul_worker: 4      # gNB 上行处理线程数
+
+# ----- UE 跟踪器配置 -----
+uetracker:
+  close_timeout: 5000     # 超时时间 (ms), 如果在此时间内未收到 UE 消息则停止跟踪该 UE
+  parse_messages: true    # 是否解析捕获的 RRC/NAS 消息内容
+  num_ues: 10             # 预初始化的 UE 跟踪器数量, X310 性能较好可设置更多
+  enable_gpu: false       # 是否启用 GPU 加速解码 (需要 CUDA 支持)
+
+# ----- 下行注入器配置 -----
+downlink_injector:
+  delay_n_slots: 5        # 注入延迟的时隙数, 捕获到目标消息后等待 N 个 slot 再注入
+  duplications: 4         # 每次注入时发送的重复副本数, 增加注入成功率 (X310 建议 4)
+  tx_cfo_correction: 0    # 发射端载波频偏校正 (Hz)
+  tx_advancement: 48      # 提前发送的采样点数, 用于补偿 X310 的处理延迟
+                          # X310 延迟较低, 值比 B210 (160) 小
+  pdsch_mcs: 3            # 注入消息使用的 PDSCH 调制编码方案 (MCS), 低 MCS 更可靠
+  pdsch_prbs: 24          # 注入消息占用的 PRB 数量
+
+
+# ----- 日志配置 -----
+log:
+  log_level: INFO         # 全局日志级别 (DEBUG/INFO/WARNING/ERROR)
+  syncer: INFO            # 同步模块日志级别
+  worker: INFO            # 工作线程日志级别
+  bc_worker: INFO         # 广播信道工作线程日志级别
+
+# ----- 攻击模块选择 (取消注释以启用对应模块) -----
+exploit: build/modules/lib_dummy_exploit.so                   # 先用 dummy 验证基本功能
+# exploit:  build/modules/lib_identity_request.so              # Identity Request 注入 (请求 UE 上报 IMSI/IMEI)
+# exploit:  build/modules/lib_dg_authentication_request_sniffer.so  # 认证请求嗅探 (捕获 Authentication Request)
+#exploit:  build/modules/lib_dg_authentication_replay.so      # 认证重放攻击 (重放捕获的 Authentication Request)
+#exploit:  build/modules/lib_dg_registration_reject.so        # 注册拒绝注入 (向 UE 发送 Registration Reject)
+# exploit:  build/modules/lib_mac_sch_mtk_rlc_crash.so        # MTK RLC 层崩溃 (联发科芯片漏洞 - 5Ghoul)
+# exploit:  build/modules/lib_mac_sch_mtk_rrc_setup_crash_3.so # MTK RRC Setup 崩溃变体3 (5Ghoul)
+#exploit:  build/modules/lib_mac_sch_mtk_rrc_setup_crash_4.so # MTK RRC Setup 崩溃变体4 (5Ghoul)
+#exploit:  build/modules/lib_mac_sch_mtk_rrc_setup_crash_6.so # MTK RRC Setup 崩溃变体6 (5Ghoul)
+#exploit:  build/modules/lib_mac_sch_mtk_rrc_setup_crash_7.so # MTK RRC Setup 崩溃变体7 (5Ghoul)
+#exploit:  build/modules/lib_plaintext_registration_accept.so # 明文注册接受注入 (伪造 Registration Accept)

@@ -1,0 +1,43 @@
+# Modified from gnb_rf_b210_fdd_srsUE.yml — adapted for sni5gect 5GC (AMF on 127.0.0.5)
+# FDD cell, band 3, 20 MHz, 15 kHz SCS. USRP B210 with external clock (Leo Bodnar GPSDO).
+
+cu_cp:
+  amf:
+    addr: 127.0.0.5                   # sni5gect Open5GS AMF (host networking)
+    port: 38412
+    bind_addr: 127.0.0.1
+    supported_tracking_areas:
+      - tac: 7
+        plmn_list:
+          - plmn: "00101"
+            tai_slice_support_list:
+              - sst: 1
+
+ru_sdr:
+  device_driver: uhd
+  device_args: type=b200
+  clock: external                     # Leo Bodnar GPSDO
+  srate: 23.04
+  otw_format: sc12
+  tx_gain: 80
+  rx_gain: 40
+
+cell_cfg:
+  dl_arfcn: 373000
+  # dl_arfcn: 368500
+  band: 3
+  channel_bandwidth_MHz: 20
+  common_scs: 15
+  plmn: "00101"
+  tac: 7
+
+log:
+  filename: ../logs/gnb.log
+  all_level: info
+
+
+pcap:
+  mac_enable: true
+  mac_filename: ../logs/gnb_mac.pcap
+  ngap_enable: true
+  ngap_filename: ../logs/gnb_ngap.pcap
