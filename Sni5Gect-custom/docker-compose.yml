@@ -8,7 +8,13 @@ services:
     container_name: sni5gect-custom
     privileged: true
     restart: unless-stopped
-    entrypoint: /sbin/init
+    entrypoint:
+      - /bin/bash
+      - -lc
+      - |
+        sysctl -w net.core.wmem_max=24912805
+        sysctl -w net.core.rmem_max=24912805
+        exec /sbin/init
     network_mode: host
     cap_add:
       - SYS_NICE
