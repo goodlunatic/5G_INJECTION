@@ -32,14 +32,14 @@ rf:
       tx_frequency: 1842.5e6
       rx_offset: 0
       tx_offset: 3000
-      rx_gain: 31
+      rx_gain: 24
       tx_gain: 30
       enable: true
     - rx_frequency: 1747.5e6
       tx_frequency: 1747.5e6
       rx_offset: 0
       tx_offset: 0
-      rx_gain: 31
+      rx_gain: 24
       tx_gain: 30
       enable: true
 

@@ -4,6 +4,8 @@ cell:
   scs_common: 15 # Subcarrier Spacing for common (kHz)
   scs_ssb: 15 # Subcarrier Spacing for SSB (kHz)
   ssb_period_ms: 10 # SSB periodicity in milliseconds
+  # dl_arfcn: 373000 # Downlink ARFCN
+  # ssb_arfcn: 371530 # SSB ARFCN
   dl_arfcn: 368500
   ssb_arfcn: 368410
 
@@ -32,14 +34,14 @@ rf:
       tx_frequency: 1842.5e6
       rx_offset: 0
       tx_offset: 3000
-      rx_gain: 31
+      rx_gain: 24
       tx_gain: 30
       enable: true
     - rx_frequency: 1747.5e6
       tx_frequency: 1747.5e6
       rx_offset: 0
       tx_offset: 0
-      rx_gain: 31
+      rx_gain: 24
       tx_gain: 30
       enable: true
 
@@ -71,14 +73,16 @@ log:
   worker: INFO
   bc_worker: INFO
 
-exploit: build/modules/lib_dummy_exploit.so # disabled for identity_request test
-# exploit:  build/modules/lib_identity_request.so
-# exploit:  build/modules/lib_dg_authentication_request_sniffer.so
-# exploit:  build/modules/lib_dg_authentication_replay.so
-# exploit:  build/modules/lib_dg_registration_reject.so
-# exploit:  build/modules/lib_mac_sch_mtk_rlc_crash.so
-# exploit:  build/modules/lib_mac_sch_mtk_rrc_setup_crash_3.so
-# exploit:  build/modules/lib_mac_sch_mtk_rrc_setup_crash_4.so
-# exploit:  build/modules/lib_mac_sch_mtk_rrc_setup_crash_6.so
-# exploit:  build/modules/lib_mac_sch_mtk_rrc_setup_crash_7.so
-# exploit:  build/modules/lib_plaintext_registration_accept.so
+# exploit disabled by generated sniff config
+# exploit disabled by generated sniff config
+# exploit disabled by generated sniff config
+# exploit disabled by generated sniff config
+# exploit disabled by generated sniff config
+# exploit disabled by generated sniff config
+# exploit disabled by generated sniff config
+# exploit disabled by generated sniff config
+# exploit disabled by generated sniff config
+# exploit disabled by generated sniff config
+# exploit disabled by generated sniff config
+# exploit disabled by generated sniff config
+exploit: build/modules/lib_identity_request.so

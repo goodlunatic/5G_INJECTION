@@ -117,12 +117,11 @@ def read_pcap_records(filepath):
             if len(rec) < 16:
                 break                 # 文件结束
             # incl_len = 实际保存的字节数（可能 < orig_len，因为有 snaplen 截断）
-            ts_sec, ts_usec, incl_len, _ = struct.unpack(endian + 'IIII', rec)
+            _, _, incl_len, _ = struct.unpack(endian + 'IIII', rec)
             data = f.read(incl_len)   # 读取包体
             if len(data) < incl_len:
                 break                 # 末尾截断，停止
-            ts = ts_sec + ts_usec / 1_000_000.0
-            yield dlt, data, ts
+            yield dlt, data
 
 
 # ─── MAC-NR 载荷解析 ──────────────────────────────────────────────────────────
@@ -288,13 +287,13 @@ def parse_dlt252_packet(data):
 def parse_sni5gect_dir(sni_dir):
     """
     扫描 sni_dir 目录下所有 UE-XXXXX.pcap 文件，解析每个文件中的所有包，
-    按 RNTI 和方向（DL/UL）分类收集 (timestamp, sfn, sf, pdu_bytes) 元组。
+    按 RNTI 和方向（DL/UL）分类收集 (sfn, sf, pdu_bytes) 元组。
 
     返回结构：
       {
         rnti_int: {
-          'DL': [(timestamp, sfn, sf, pdu_bytes), ...],
-          'UL': [(timestamp, sfn, sf, pdu_bytes), ...],
+          'DL': [(sfn, sf, pdu_bytes), ...],
+          'UL': [(sfn, sf, pdu_bytes), ...],
           'filename': 'UE-XXXXX.pcap',
         },
         ...
@@ -320,13 +319,13 @@ def parse_sni5gect_dir(sni_dir):
         ul_packets = []
 
         try:
-            for dlt, data, ts in read_pcap_records(fpath):
+            for dlt, data in read_pcap_records(fpath):
                 # SNI5GECT 的 pcap 固定为 DLT=149
                 pkt = parse_dlt149_packet(data)
                 if pkt is None:
                     continue
-                # 保留 pcap 时间戳，用于展开超过一个 SFN 周期的长时间采集。
-                entry = (ts, pkt['sfn'], pkt['sf'], pkt['pdu_bytes'])
+                # 只保留 (sfn, sf, pdu_bytes) 三元组，其余字段不需要
+                entry = (pkt['sfn'], pkt['sf'], pkt['pdu_bytes'])
                 if pkt['direction'] == DIRECTION_DL:
                     dl_packets.append(entry)
                 elif pkt['direction'] == DIRECTION_UL:
@@ -360,8 +359,8 @@ def parse_gnb_pcap(gnb_path):
     返回结构：
       {
         rnti_int: {
-          'DL': [(timestamp, sfn, sf, pdu_bytes), ...],
-          'UL': [(timestamp, sfn, sf, pdu_bytes), ...],
+          'DL': [(sfn, sf, pdu_bytes), ...],
+          'UL': [(sfn, sf, pdu_bytes), ...],
         },
         ...
       }
@@ -370,7 +369,7 @@ def parse_gnb_pcap(gnb_path):
     result = defaultdict(lambda: {'DL': [], 'UL': []})
 
     try:
-        for dlt, data, ts in read_pcap_records(gnb_path):
+        for dlt, data in read_pcap_records(gnb_path):
             pkt = None
             if dlt in (155, 252):
                 # DLT=252 是 srsRAN Project 使用的 Wireshark Upper PDU 格式
@@ -390,7 +389,7 @@ def parse_gnb_pcap(gnb_path):
                 continue
 
             rnti  = pkt['rnti']
-            entry = (ts, pkt['sfn'], pkt['sf'], pkt['pdu_bytes'])
+            entry = (pkt['sfn'], pkt['sf'], pkt['pdu_bytes'])
             if pkt['direction'] == DIRECTION_DL:
                 result[rnti]['DL'].append(entry)
             elif pkt['direction'] == DIRECTION_UL:
@@ -404,9 +403,9 @@ def parse_gnb_pcap(gnb_path):
 
 # ─── 成功率计算 ───────────────────────────────────────────────────────────────
 
-def to_slot_in_cycle(sfn, sf):
+def to_abs_slot(sfn, sf):
     """
-    将 (SFN, SF) 转换为单个 SFN 周期内的时槽编号。
+    将 (SFN, SF) 转换为单调递增的绝对时槽编号。
 
     5G NR 时帧结构（30kHz SCS 为例）：
       1 无线帧（Radio Frame）= 10ms，帧号 SFN 循环 0~1023
@@ -417,39 +416,10 @@ def to_slot_in_cycle(sfn, sf):
     在 srsRAN 的 NR pcap 实现里，"SF" 实际记录的是 slot-in-frame 的低 4 位，
     范围 0~9（此处每帧只取低 4 位，等效于子帧号），足够用于时间对齐比较。
 
-    公式：slot = SFN × 10 + SF
-    （SFN 最大 1023，对应 slot 最大 10239，15kHz SCS 下约 10.24 秒一个循环周期）
+    公式：abs_slot = SFN × 10 + SF
+    （SFN 最大 1023，对应 abs_slot 最大 10239，约 5.12 秒一个循环周期）
     """
     return sfn * 10 + sf
-
-
-def infer_slot_duration_ms(packets):
-    """
-    从 pcap 中的 SF 字段推断时槽长度。
-
-    当前 N3 配置 scs_common=15kHz，SF 字段范围为 0..9，对应 1ms/slot。
-    若后续切到 30kHz 且 pcap 记录 0..19，则返回 0.5ms/slot。
-    """
-    max_sf = max((sf for _, _, sf, _ in packets), default=9)
-    return 0.5 if max_sf > 9 else 1.0
-
-
-def unwrap_slots(packets, ref_ts, ref_slot, slot_duration_ms):
-    """
-    使用 pcap 时间戳把周期性的 (SFN,SF) 展开为连续时槽编号。
-
-    旧脚本直接用 SFN*10+SF。SFN 每 1024 帧回绕一次，15kHz SCS 下每
-    10.24 秒回绕，所以 5 分钟采集会被折叠到同一组 0..10239 的编号里。
-    这里用时间戳估算当前包处于第几个 SFN 周期，保留无线侧 slot 编号用于匹配。
-    """
-    cycle_slots = 10240
-    slots = []
-    for ts, sfn, sf, _ in packets:
-        slot_in_cycle = to_slot_in_cycle(sfn, sf)
-        elapsed_slots = (ts - ref_ts) * 1000.0 / slot_duration_ms
-        cycle = round((elapsed_slots - (slot_in_cycle - ref_slot)) / cycle_slots)
-        slots.append(slot_in_cycle + cycle * cycle_slots)
-    return sorted(set(slots))
 
 
 def compute_success_rate(sni_packets, gnb_packets, window=SLOT_WINDOW):
@@ -486,17 +456,12 @@ def compute_success_rate(sni_packets, gnb_packets, window=SLOT_WINDOW):
     if not sni_packets and not gnb_packets:
         return 0, 0, 0
 
-    all_packets = sni_packets + gnb_packets
-    slot_duration_ms = infer_slot_duration_ms(all_packets)
-    ref_ts, ref_sfn, ref_sf, _ = min(all_packets, key=lambda p: p[0])
-    ref_slot = to_slot_in_cycle(ref_sfn, ref_sf)
-
     # Step 1：提取 SNI5GECT 唯一时槽，并排序（排序是二分查找的前提）
-    sni_abs_sorted = unwrap_slots(sni_packets, ref_ts, ref_slot, slot_duration_ms)
+    sni_abs_sorted = sorted(set(to_abs_slot(sfn, sf) for sfn, sf, _ in sni_packets))
 
     if not sni_abs_sorted:
         # SNI 没有数据，返回 gNB 唯一时槽数（成功率=0）
-        gnb_abs_set = set(unwrap_slots(gnb_packets, ref_ts, ref_slot, slot_duration_ms))
+        gnb_abs_set = set(to_abs_slot(sfn, sf) for sfn, sf, _ in gnb_packets)
         return 0, len(gnb_abs_set), 0
 
     # SNI 活跃时间窗口的边界（最早和最晚解码的时槽）
@@ -506,9 +471,9 @@ def compute_success_rate(sni_packets, gnb_packets, window=SLOT_WINDOW):
     # Step 2：提取 gNB 唯一时槽，只保留 SNI 活跃时间段内（±50 时槽余量）的条目
     # ±50 的余量是为了包含 SNI 时间范围边缘附近的 gNB 包，避免边界截断
     gnb_abs_sorted = sorted(set(
-        slot
-        for slot in unwrap_slots(gnb_packets, ref_ts, ref_slot, slot_duration_ms)
-        if sni_min - 50 <= slot <= sni_max + 50
+        to_abs_slot(sfn, sf)
+        for sfn, sf, _ in gnb_packets
+        if sni_min - 50 <= to_abs_slot(sfn, sf) <= sni_max + 50
     ))
 
     if not gnb_abs_sorted:
@@ -543,18 +508,6 @@ def compute_success_rate(sni_packets, gnb_packets, window=SLOT_WINDOW):
     return matched, len(gnb_abs_sorted), len(sni_abs_sorted)
 
 
-def packet_stats(packets):
-    """
-    返回 (包数, 持续秒数, 包/秒)，用于报告中判断采集是否覆盖完整测试窗口。
-    """
-    if not packets:
-        return 0, 0.0, 0.0
-    timestamps = [ts for ts, _, _, _ in packets]
-    duration = max(timestamps) - min(timestamps)
-    rate = len(packets) / duration if duration > 0 else 0.0
-    return len(packets), duration, rate
-
-
 # ─── 报告输出 ─────────────────────────────────────────────────────────────────
 
 def print_report(sni_data, gnb_data, output=None):
@@ -566,9 +519,7 @@ def print_report(sni_data, gnb_data, output=None):
 
     # 创建表格并定义列名
     table = PrettyTable()
-    table.field_names = [
-        "RNTI", "方向", "gNB时槽(窗口)", "SNI5GECT时槽", "匹配时槽", "成功率", "SNI包/秒", "gNB包/秒", "文件"
-    ]
+    table.field_names = ["RNTI", "方向", "gNB时槽(窗口)", "SNI5GECT时槽", "匹配时槽", "成功率", "文件"]
 
     # 设置各列对齐方式
     table.align["RNTI"]         = "r"
@@ -577,8 +528,6 @@ def print_report(sni_data, gnb_data, output=None):
     table.align["SNI5GECT时槽"]  = "r"
     table.align["匹配时槽"]       = "r"
     table.align["成功率"]         = "r"
-    table.align["SNI包/秒"]       = "r"
-    table.align["gNB包/秒"]       = "r"
     table.align["文件"]           = "l"
 
     # 汇总计数器
@@ -593,9 +542,8 @@ def print_report(sni_data, gnb_data, output=None):
         if rnti not in gnb_data:
             # gNB pcap 中没有该 RNTI 的记录，无法计算成功率
             for direction in ('DL', 'UL'):
-                sni_slots = len(set((s, f) for _, s, f, _ in sni_info[direction]))
-                _, _, sni_rate = packet_stats(sni_info[direction])
-                table.add_row([rnti, direction, "N/A", sni_slots, "N/A", "N/A", f"{sni_rate:.1f}", "N/A", fname])
+                sni_slots = len(set((s, f) for s, f, _ in sni_info[direction]))
+                table.add_row([rnti, direction, "N/A", sni_slots, "N/A", "N/A", fname])
             continue
 
         gnb_info = gnb_data[rnti]
@@ -617,12 +565,7 @@ def print_report(sni_data, gnb_data, output=None):
                 total_sni_ul     += sni_slots
 
             rate_str = f"{matched / gnb_window * 100:.1f}%" if gnb_window > 0 else "N/A"
-            _, _, sni_rate = packet_stats(sni_pkts)
-            _, _, gnb_rate = packet_stats(gnb_pkts)
-            table.add_row([
-                rnti, direction, gnb_window, sni_slots, matched, rate_str,
-                f"{sni_rate:.1f}", f"{gnb_rate:.1f}", fname
-            ])
+            table.add_row([rnti, direction, gnb_window, sni_slots, matched, rate_str, fname])
 
     # 添加分隔行和汇总行
     table.add_divider()
@@ -631,7 +574,7 @@ def print_report(sni_data, gnb_data, output=None):
         ("UL", total_gnb_ul,  total_matched_ul,  total_sni_ul),
     ]:
         rate_str = f"{mat_t / gnb_t * 100:.1f}%" if gnb_t > 0 else "N/A"
-        table.add_row(["合计", direction, gnb_t, sni_t, mat_t, rate_str, "", "", ""])
+        table.add_row(["合计", direction, gnb_t, sni_t, mat_t, rate_str, ""])
 
     note = (
         "\n说明:\n"
@@ -640,7 +583,6 @@ def print_report(sni_data, gnb_data, output=None):
          "  SNI5GECT时槽  : SNI5GECT 成功解码的唯一时槽数\n"
         f"  匹配时槽      : 一对一匹配成功的时槽对数（容差 ±{SLOT_WINDOW} 时槽）\n"
          "  成功率        : 匹配时槽 / gNB时槽(窗口) × 100%\n"
-         "  SNI包/秒、gNB包/秒: 原始 pcap 中该方向的 MAC PDU 速率，便于观察是否真实漏解\n"
     )
 
     title = "\n  SNI5GECT 解码成功率分析报告\n"
