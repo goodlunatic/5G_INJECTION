@@ -40,8 +40,8 @@ ru_sdr:
   srate: 23.04                      # 采样率（Msps，20MHz NR标准）
 
   otw_format: sc12                  # over-the-wire格式（降低USB带宽）
-  tx_gain: 70                       # 发射增益（dB）
-  rx_gain: 40                       # 接收增益（dB，避免ADC饱和）
+  tx_gain: 75                       # 发射增益（dB）
+  rx_gain: 75                       # 接收增益（dB，避免ADC饱和）
 
 
 cell_cfg:

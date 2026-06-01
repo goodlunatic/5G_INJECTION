@@ -215,7 +215,7 @@ void UEDLWorker::handle_pdsch(srsran_slot_cfg_t& slot_cfg)
   }
 
   /* Write to pcap */
-  pcap_writer->write_dl_crnti_nr(data->msg, data->N_bytes, rnti, 0, slot_cfg.idx / slot_per_sf);
+  pcap_writer->write_dl_crnti_nr(data->msg, data->N_bytes, rnti, 0, slot_cfg.idx);
   /* Pass the decoded to wdissector */
   wd_worker->process(data->msg,
                      data->N_bytes,

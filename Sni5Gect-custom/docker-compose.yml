@@ -10,6 +10,12 @@ services:
     restart: unless-stopped
     entrypoint: /sbin/init
     network_mode: host
+    cap_add:
+      - SYS_NICE
+      - IPC_LOCK
+    ulimits:
+      rtprio: 99
+      memlock: -1
     volumes:
       - "/dev/:/dev/"
       - "./examples:/root/sni5gect/examples"

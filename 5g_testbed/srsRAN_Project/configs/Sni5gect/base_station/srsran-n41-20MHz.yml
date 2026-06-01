@@ -22,8 +22,8 @@ ru_sdr:
   clock: external                                                 # Use the same external 10 MHz reference as the sniffer.
   srate: 23.04                                                    # RF sample rate might need to be adjusted according to selected bandwidth.
   otw_format: sc12
-  tx_gain: 80                                                     # Transmit gain of the RF might need to adjusted to the given situation.
-  rx_gain: 40                                                     # Receive gain of the RF might need to adjusted to the given situation.
+  tx_gain: 75                                                     # Transmit gain of the RF might need to adjusted to the given situation.
+  rx_gain: 75                                                     # Receive gain of the RF might need to adjusted to the given situation.
 
 cell_cfg:
   dl_arfcn: 510030                                                # ARFCN of the downlink carrier (center frequency).

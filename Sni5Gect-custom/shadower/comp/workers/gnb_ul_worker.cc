@@ -183,7 +183,7 @@ void GNBULWorker::handle_pusch(srsran_slot_cfg_t& slot_cfg)
     return;
   }
   /* Write to pcap */
-  pcap_writer->write_ul_crnti_nr(data->msg, data->N_bytes, rnti, 0, slot_cfg.idx / slot_per_sf);
+  pcap_writer->write_ul_crnti_nr(data->msg, data->N_bytes, rnti, 0, slot_cfg.idx);
   /* Pass the decoded to wdissector */
   wd_worker->process(data->msg,
                      data->N_bytes,
